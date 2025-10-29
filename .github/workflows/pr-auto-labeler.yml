@@ -235,6 +235,47 @@ jobs:
             // ==============================================================
             
             if (labelsToApply.size > 0) {
+              // Ensure all labels exist with correct colors
+              for (const label of labelsToApply) {
+                const metadata = labelMetadata.get(label);
+                if (metadata) {
+                  try {
+                    // Try to create the label
+                    await github.rest.issues.createLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      name: metadata.name,
+                      color: metadata.color,
+                      description: metadata.description
+                    });
+                    if (enableDebug) {
+                      console.log(`✅ Created label: ${label}`);
+                    }
+                  } catch (createError) {
+                    // Label already exists, update it to ensure correct color/description
+                    if (createError.status === 422) {
+                      try {
+                        await github.rest.issues.updateLabel({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          name: metadata.name,
+                          color: metadata.color,
+                          description: metadata.description
+                        });
+                        if (enableDebug) {
+                          console.log(`🔄 Updated label: ${label}`);
+                        }
+                      } catch (updateError) {
+                        if (enableDebug) {
+                          console.log(`⚠️  Could not update label ${label}: ${updateError.message}`);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              
+              // Apply labels to PR
               try {
                 await github.rest.issues.addLabels({
                   owner: context.repo.owner,
@@ -244,31 +285,7 @@ jobs:
                 });
                 console.log(`✅ Successfully applied labels: ${Array.from(labelsToApply).join(', ')}`);
               } catch (error) {
-                console.log('⚠️  Some labels may not exist. Creating them...');
-                for (const label of labelsToApply) {
-                  const metadata = labelMetadata.get(label);
-                  if (metadata) {
-                    try {
-                      await github.rest.issues.createLabel({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        name: metadata.name,
-                        color: metadata.color,
-                        description: metadata.description
-                      });
-                      console.log(`✅ Created label: ${label}`);
-                    } catch (createError) {
-                      // Label might already exist
-                    }
-                  }
-                }
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prNumber,
-                  labels: Array.from(labelsToApply)
-                });
-                console.log(`✅ Successfully applied labels: ${Array.from(labelsToApply).join(', ')}`);
+                console.error(`❌ Error applying labels: ${error.message}`);
               }
             } else {
               console.log('ℹ️  No labels to apply based on current rules');
