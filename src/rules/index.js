@@ -19,6 +19,9 @@ const uiChangeRule = require('./frontend/ui-change');
 // Infrastructure rules
 const dockerChangeRule = require('./infrastructure/docker-change');
 
+// Database rules
+const migrationRule = require('./database/migration');
+
 // Export all rules as an array
 module.exports = [
   frontendUIRule,
@@ -31,5 +34,7 @@ module.exports = [
   uiChangeRule,
   // Infrastructure rules
   dockerChangeRule,
+  // Database rules
+  migrationRule,
 ];
 

@@ -44,6 +44,7 @@ Choose which rules to enable from the table below:
 | `new-env-variable` | `new-env-variable` 🟡 | New env variables | Detects new `KEY=value` in diffs | Flag new config |
 | `potential-secret-leak` | `potential-secret-leak` 🔴 | Secrets detected | Keywords: `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN` | Security review |
 | `docker-change` | `docker-change` ⚫ | Docker files | `Dockerfile`, `.dockerignore`, `docker-compose.yml` | Track Docker config |
+| `migration` | `migration` 🔵 | Migration files | `migrations/**`, `db/migrations/**`, `database/migrations/**` | Track DB migrations |
 
 **Example configurations:**
 ```yaml
