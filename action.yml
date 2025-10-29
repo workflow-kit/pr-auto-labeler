@@ -1,4 +1,4 @@
-name: 'PR Auto-Labeler'
+name: 'PR Auto Labeler'
 description: 'Automatically label pull requests based on code changes and metadata analysis'
 author: 'ddjain'
 branding:
