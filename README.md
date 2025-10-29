@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   label:
-    uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@main
+    uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@v0.0.1
     with:
       # ⚠️ IMPORTANT: Enable the rules you want (all disabled by default)
       enabled_rules: '["ui-change", "env-change", "potential-secret-leak"]'
