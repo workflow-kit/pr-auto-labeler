@@ -46,6 +46,7 @@ Choose which rules to enable from the table below:
 | `docker-change` | `docker-change` ⚫ | Docker files | `Dockerfile`, `.dockerignore`, `docker-compose.yml` | Track Docker config |
 | `migration` | `migration` 🔵 | Migration files | `migrations/**`, `db/migrations/**`, `database/migrations/**` | Track DB migrations |
 | `risky-migration` | `risky-migration` 🔴 | Risky migrations | DROP, TRUNCATE, ALTER DROP in migration files | Flag dangerous operations |
+| `schema-change` | `schema-change` 🟡 | Schema changes | ALTER, RENAME, MODIFY COLUMN in migration files | Track DB schema modifications |
 
 **Example configurations:**
 ```yaml
