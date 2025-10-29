@@ -89,8 +89,8 @@ jobs:
         run: |
           echo "Validating rule files..."
           
-          # Check that all rule files export a function
-          for file in src/rules/*.js; do
+          # Check that all rule files export a function (including subdirectories)
+          find src/rules -name "*.js" -type f | while read file; do
             filename=$(basename "$file")
             
             # Skip template and index files
@@ -98,17 +98,17 @@ jobs:
               continue
             fi
             
-            echo "Validating $filename..."
+            echo "Validating $file..."
             
             # Check that file contains module.exports
             if ! grep -q "module.exports" "$file"; then
-              echo "❌ Error: $filename does not export anything"
+              echo "❌ Error: $file does not export anything"
               exit 1
             fi
             
             # Check that file contains metadata
             if ! grep -q "\.metadata" "$file"; then
-              echo "⚠️  Warning: $filename might be missing metadata"
+              echo "⚠️  Warning: $file might be missing metadata"
             fi
           done
           
@@ -124,8 +124,12 @@ jobs:
             "package.json"
             ".github/workflows/pr-auto-labeler.yml"
             ".github/workflows/test.yml"
-            "src/rules/frontend-ui.js"
             "src/rules/RULE_TEMPLATE.js"
+          )
+          
+          required_dirs=(
+            "src/rules/frontend"
+            "src/rules/environment"
           )
           
           for file in "${required_files[@]}"; do
@@ -135,7 +139,14 @@ jobs:
             fi
           done
           
-          echo "✅ All required files present"
+          for dir in "${required_dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ Missing required directory: $dir"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All required files and directories present"
 
   test-summary:
     runs-on: ubuntu-latest
