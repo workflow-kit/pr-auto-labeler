@@ -31,6 +31,7 @@ Create a new file in the appropriate category folder:
 - **Frontend rules:** `src/rules/frontend/your-rule-name.js`
 - **Environment rules:** `src/rules/environment/your-rule-name.js`
 - **Infrastructure rules:** `src/rules/infrastructure/your-rule-name.js`
+- **Database rules:** `src/rules/database/your-rule-name.js`
 - **New category:** Create `src/rules/your-category/your-rule-name.js`
 
 Use the template as a starting point:
@@ -411,6 +412,7 @@ Here are some rule ideas you can implement:
 ### Medium Priority
 - [ ] CI/CD Changes (workflow files, Jenkinsfile)
 - [x] Docker Changes (Dockerfile, docker-compose) - **Implemented:** `docker-change` rule
+- [x] Detect Migration File Changes - **Implemented:** `migration` rule
 - [ ] Documentation Changes (README, docs/)
 - [ ] Security Changes (auth, encryption, secrets)
 - [ ] Infrastructure Changes (terraform, ansible)
