@@ -1,24 +1,34 @@
 {
   "name": "pr-auto-labeler",
   "version": "1.0.0",
-  "description": "Intelligent PR auto-labeling workflow for GitHub Actions",
-  "main": "src/labeler.js",
+  "description": "Intelligent, reusable GitHub Actions workflow that automatically labels pull requests based on content and metadata analysis",
+  "main": "src/workflow-script.js",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --maxWorkers=2"
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "lint": "echo 'Linting not configured yet'"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/workflow-kit/pr-auto-labeler.git"
   },
+  "bugs": {
+    "url": "https://github.com/workflow-kit/pr-auto-labeler/issues"
+  },
+  "homepage": "https://github.com/workflow-kit/pr-auto-labeler#readme",
   "keywords": [
     "github-actions",
     "pull-request",
     "automation",
     "labeling",
-    "workflow"
+    "workflow",
+    "reusable-workflow",
+    "pr-labels",
+    "github",
+    "ci-cd",
+    "devops"
   ],
   "author": "ddjain",
   "license": "MIT",

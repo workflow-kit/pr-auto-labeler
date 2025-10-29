@@ -227,7 +227,7 @@ PR modifies: config.yml (existing keys only)
 
 ### 🔜 Coming Soon
 
-More rules are being developed! See [requirement.md](requirement.md) for the full roadmap including:
+More rules are being developed! See [DESIGN.md](docs/DESIGN.md) for the full roadmap including:
 
 - 🗃️ Database & Migration Detection
 - 🧪 Test Coverage Analysis
@@ -635,7 +635,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **💬 Discussions**: [GitHub Discussions](../../discussions)
 - **🐛 Issues**: [GitHub Issues](../../issues)
 - **📝 Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-- **📋 Roadmap**: [requirement.md](requirement.md)
+- **📋 Roadmap**: [DESIGN.md](docs/DESIGN.md)
 
 ---
 
