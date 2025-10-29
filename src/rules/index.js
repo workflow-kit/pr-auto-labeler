@@ -7,11 +7,29 @@
 
 const frontendUIRule = require('./frontend-ui');
 
+// Environment rules
+const envChangeRule = require('./environment/env-change');
+const newEnvVariableRule = require('./environment/new-env-variable');
+const potentialSecretLeakRule = require('./environment/potential-secret-leak');
+
+// Frontend rules
+const styleChangeRule = require('./frontend/style-change');
+const uiChangeRule = require('./frontend/ui-change');
+
+// Infrastructure rules
+const dockerChangeRule = require('./infrastructure/docker-change');
+
 // Export all rules as an array
 module.exports = [
   frontendUIRule,
-  // Add more rules here as they are created
-  // Example: require('./database-migrations'),
-  // Example: require('./test-coverage'),
+  // Environment rules
+  envChangeRule,
+  newEnvVariableRule,
+  potentialSecretLeakRule,
+  // Frontend rules
+  styleChangeRule,
+  uiChangeRule,
+  // Infrastructure rules
+  dockerChangeRule,
 ];
 

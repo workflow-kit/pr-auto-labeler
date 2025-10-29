@@ -43,17 +43,21 @@ Choose which rules to enable from the table below:
 | `env-change` | `env-change` 🟠 | Environment files | `.env`, `.env.*`, `config.yml`, `config.json` | Track config changes |
 | `new-env-variable` | `new-env-variable` 🟡 | New env variables | Detects new `KEY=value` in diffs | Flag new config |
 | `potential-secret-leak` | `potential-secret-leak` 🔴 | Secrets detected | Keywords: `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN` | Security review |
+| `docker-change` | `docker-change` ⚫ | Docker files | `Dockerfile`, `.dockerignore`, `docker-compose.yml` | Track Docker config |
 
 **Example configurations:**
 ```yaml
 # Enable all rules
-enabled_rules: '["ui-change", "style-change", "env-change", "new-env-variable", "potential-secret-leak"]'
+enabled_rules: '["ui-change", "style-change", "env-change", "new-env-variable", "potential-secret-leak", "docker-change"]'
 
 # Frontend team only
 enabled_rules: '["ui-change", "style-change"]'
 
 # Security-focused
 enabled_rules: '["potential-secret-leak"]'
+
+# Infrastructure team
+enabled_rules: '["docker-change", "env-change"]'
 ```
 
 ### Step 2: Commit & Push
