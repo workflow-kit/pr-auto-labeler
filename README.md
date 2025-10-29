@@ -1,48 +1,17 @@
 # 🏷️ PR Auto-Labeler
 
-> Intelligent, reusable GitHub Actions workflow that automatically labels pull requests based on content and metadata analysis.
+> **Automatically label your pull requests** based on code changes. Zero configuration required for basic setup.
 
 [![GitHub](https://img.shields.io/badge/GitHub-workflow--kit%2Fpr--auto--labeler-blue?logo=github)](https://github.com/workflow-kit/pr-auto-labeler)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## 📋 Table of Contents
+---
 
-- [Overview](#overview)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Current Rules](#current-rules)
-- [All Labels Reference](#-all-labels-reference)
-- [Contributing](#contributing)
-- [Advanced Usage](#advanced-usage)
-- [Troubleshooting](#troubleshooting)
-- [Testing](#testing)
-- [License](#license)
+## 🚀 Quick Setup (2 Minutes)
 
-## 🎯 Overview
+### 1. Create Workflow File
 
-PR Auto-Labeler automatically analyzes pull requests and applies labels based on configurable rules. It helps teams:
-
-- **Streamline PR triage** by automatically categorizing changes
-- **Improve visibility** into what type of changes a PR contains
-- **Enforce consistency** across repositories
-- **Save time** by eliminating manual labeling
-
-## ✨ Features
-
-- **🔌 Reusable Workflow**: Use across multiple repositories with minimal setup
-- **🎨 Modular Rule System**: Easy to add new detection rules
-- **⚙️ Highly Configurable**: Override labels, skip rules, set thresholds
-- **🏷️ Auto Label Creation**: Automatically creates labels if they don't exist
-- **🐛 Debug Mode**: Detailed logging for troubleshooting
-- **🚀 Fast**: Completes in seconds for most PRs
-- **🔓 Open Source**: Community-driven rule development
-
-## 🚀 Quick Start
-
-### Step 1: Create Workflow File
-
-In your repository, create `.github/workflows/pr-labeler.yml`:
+Create `.github/workflows/pr-labeler.yml` in your repository:
 
 ```yaml
 name: Auto Label PRs
@@ -59,588 +28,322 @@ jobs:
   label:
     uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@main
     with:
-      # Enable the rules you want to use
-      enabled_rules: '["frontend-ui", "env-variables"]'
+      # ⚠️ IMPORTANT: Enable the rules you want to use
+      enabled_rules: '["ui-change", "style-change", "env-change", "new-env-variable", "potential-secret-leak"]'
 ```
 
-### Step 2: That's It!
+### 2. Commit & Push
 
-Create a pull request and watch the magic happen! 🎉
+```bash
+git add .github/workflows/pr-labeler.yml
+git commit -m "Add PR auto-labeler workflow"
+git push
+```
 
-> **💡 Note:** Rules are disabled by default. You must specify which rules to enable using the `enabled_rules` parameter. See [Current Rules](#-current-rules) for available options.
+### 3. Done! ✅
 
-## ⚙️ Configuration
+Create a pull request and labels will be applied automatically.
 
-### ⚠️ Important: Rules are Disabled by Default
+---
 
-**All rules are disabled by default.** You must explicitly enable the rules you want to use.
+## 📚 Supported Rules
 
-### Basic Configuration
+All rules are **disabled by default**. Add them to `enabled_rules` to use them.
 
-Enable rules and customize behavior with input parameters:
+### 🎨 Frontend Rules
 
+#### `ui-change` - UI/Frontend Changes
+- **What it detects:** Any frontend files (HTML, CSS, JS frameworks)
+- **Labels:** `ui-change`
+- **File types:** `.html`, `.css`, `.scss`, `.sass`, `.less`, `.jsx`, `.tsx`, `.vue`
+- **Enable:**
+  ```yaml
+  enabled_rules: '["ui-change"]'
+  ```
+- **When to use:** Track any frontend changes in your PRs
+- **Example:** Modify `index.html` → Gets `ui-change` label
+
+---
+
+#### `style-change` - Style-Only Changes
+- **What it detects:** Only CSS/SCSS files changed (no JavaScript)
+- **Labels:** `style-change`
+- **File types:** `.css`, `.scss`, `.sass`, `.less` (without `.js`, `.jsx`, `.ts`, `.tsx`)
+- **Enable:**
+  ```yaml
+  enabled_rules: '["style-change"]'
+  ```
+- **When to use:** Identify purely cosmetic changes
+- **Example:** Modify `styles.css` only → Gets `style-change` label
+- **Note:** Requires `ui-change` to be enabled if you want both labels
+
+---
+
+### 🔐 Environment Rules
+
+#### `env-change` - Environment File Changes
+- **What it detects:** Changes to environment configuration files
+- **Labels:** `env-change`
+- **File types:** `.env`, `.env.*`, `config.yml`, `config.yaml`, `config.json`
+- **Enable:**
+  ```yaml
+  enabled_rules: '["env-change"]'
+  ```
+- **When to use:** Track configuration changes that may affect deployments
+- **Example:** Modify `.env.production` → Gets `env-change` label
+
+---
+
+#### `new-env-variable` - New Environment Variables
+- **What it detects:** New variables added to environment files
+- **Labels:** `new-env-variable`
+- **Detection:** Analyzes git diff for new `KEY=value` patterns
+- **Enable:**
+  ```yaml
+  enabled_rules: '["new-env-variable"]'
+  ```
+- **When to use:** Flag new config requirements needing documentation
+- **Example:** Add `NEW_API_KEY=value` to `.env` → Gets `new-env-variable` label
+- **Note:** Requires `env-change` rule to detect the file first
+
+---
+
+#### `potential-secret-leak` - Secret Detection
+- **What it detects:** Environment variables with sensitive keywords
+- **Labels:** `potential-secret-leak` 🔴
+- **Keywords detected:** `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN`, `PRIVATE_KEY`, `CREDENTIAL` (case-insensitive)
+- **Enable:**
+  ```yaml
+  enabled_rules: '["potential-secret-leak"]'
+  ```
+- **When to use:** Critical security review required
+- **Example:** Add `API_KEY=secret123` → Gets `potential-secret-leak` label
+- **Security note:** Helps prevent accidental credential commits
+
+---
+
+## 📋 Quick Reference Table
+
+| Rule Name | Label | Color | When Applied |
+|-----------|-------|-------|--------------|
+| `ui-change` | `ui-change` | 🟢 Green | HTML, CSS, JSX, TSX, Vue files |
+| `style-change` | `style-change` | 🟣 Purple | Only CSS/SCSS (no JS/TS) |
+| `env-change` | `env-change` | 🟠 Orange | `.env` or `config.*` files |
+| `new-env-variable` | `new-env-variable` | 🟡 Yellow | New `KEY=value` in env files |
+| `potential-secret-leak` | `potential-secret-leak` | 🔴 Red | Secrets detected (API_KEY, etc.) |
+
+---
+
+## 🎯 Common Configurations
+
+### Enable All Rules
 ```yaml
-jobs:
-  label:
-    uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@main
-    with:
-      # ✅ REQUIRED: Enable specific rules (JSON array)
-      # All rules are disabled by default
-      # Format: "category/rule-name" or just "rule-name"
-      enabled_rules: '["frontend/ui-change", "frontend/style-change", "environment/env-change"]'
-      
-      # Alternative: use short names (without category)
-      # enabled_rules: '["ui-change", "style-change", "env-change"]'
-      
-      # Optional: Filter to specific labels only
-      enabled_labels: '["ui-change", "env-change", "potential-secret-leak"]'
-      
-      # Optional: Enable debug logging (default: false)
-      enable_debug: true
-      
-      # Optional: Threshold for large PR detection (default: 500)
-      large_pr_threshold: 800
-      
-      # Optional: Override default label names (JSON object)
-      label_overrides: '{"ui-change":"frontend-change"}'
-      
-      # Optional: Skip specific labels (JSON array)
-      skip_labels: '["style-change"]'
+enabled_rules: '["ui-change", "style-change", "env-change", "new-env-variable", "potential-secret-leak"]'
 ```
 
-### Configuration Options
+### Frontend Team Only
+```yaml
+enabled_rules: '["ui-change", "style-change"]'
+```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `enabled_rules` | JSON Array | `[]` | **Rules to enable** (all disabled by default). See [Available Rules](#-current-rules) |
-| `enabled_labels` | JSON Array | `[]` | **Labels to apply** (if empty, all labels from enabled rules). See [All Labels](#-all-labels-reference) |
-| `label_overrides` | JSON Object | `{}` | Map default labels to custom names |
-| `large_pr_threshold` | Number | `500` | Lines changed to trigger `large-pr` label |
-| `enable_debug` | Boolean | `false` | Enable detailed debug logging |
-| `skip_labels` | JSON Array | `[]` | Labels to skip applying |
+### Security-Focused (Secrets Only)
+```yaml
+enabled_rules: '["potential-secret-leak"]'
+```
 
-### Examples
+### Backend Team (Environment Config)
+```yaml
+enabled_rules: '["env-change", "new-env-variable", "potential-secret-leak"]'
+```
 
-#### Enable Specific Labels Only
+### Minimal (UI Changes Only)
+```yaml
+enabled_rules: '["ui-change"]'
+```
 
+---
+
+## ⚙️ Advanced Configuration
+
+### Filter Specific Labels Only
 Enable rules but only apply certain labels:
-
 ```yaml
 with:
-  enabled_rules: '["frontend-ui", "env-variables"]'
-  # Only apply these specific labels:
-  enabled_labels: '["ui-change", "env-change", "potential-secret-leak"]'
-  # This will NOT apply: style-change, new-env-variable
+  enabled_rules: '["ui-change", "style-change", "env-change"]'
+  enabled_labels: '["ui-change", "env-change"]'  # Only these labels
+  # style-change label will be filtered out
 ```
 
-#### Override Label Names
-
-If your organization uses different naming conventions:
-
+### Override Label Names
+Use custom label names:
 ```yaml
 with:
-  label_overrides: |
-    {
-      "ui-change": "frontend",
-      "style-change": "css-only"
-    }
+  enabled_rules: '["ui-change"]'
+  label_overrides: '{"ui-change":"frontend"}'
+  # Will apply "frontend" label instead of "ui-change"
 ```
 
-#### Skip Certain Labels
-
-If you don't want certain labels applied:
-
+### Skip Labels
+Prevent certain labels from being applied:
 ```yaml
 with:
-  skip_labels: '["style-change", "test-only"]'
+  enabled_rules: '["ui-change", "style-change"]'
+  skip_labels: '["style-change"]'
+  # Only ui-change will be applied
 ```
 
-#### Debug Mode for Troubleshooting
-
+### Debug Mode
+Enable detailed logging for troubleshooting:
 ```yaml
 with:
+  enabled_rules: '["ui-change"]'
   enable_debug: true
+  # Shows detailed logs: files analyzed, rules executed, labels detected
 ```
 
-This will show detailed logs including:
-- Files analyzed
-- Rules executed
-- Labels detected
-- Labels filtered
-- Final labels applied
-
-## 📚 Current Rules
-
-> **💡 Remember:** All rules are disabled by default. Add them to `enabled_rules` to use them!
-
-### 🎨 Frontend/UI Detection
-**Rule Name:** `frontend-ui` 
-
-Detects changes to frontend and UI files.
-
-**Enable:**
+### Full Configuration Example
 ```yaml
-enabled_rules: '["frontend-ui"]'
-```
-
-**Labels Applied:**
-- **`ui-change`** (🟢 Green): UI/Frontend files modified
-  - Triggered by: `.html`, `.css`, `.scss`, `.sass`, `.less`, `.jsx`, `.tsx`, `.vue`
-- **`style-change`** (🟣 Purple): Only style files modified (no JavaScript)
-  - Triggered by: `.css`, `.scss`, `.sass`, `.less` (without `.js`, `.jsx`, `.ts`, `.tsx`)
-
-**Example:**
-```
-PR modifies: index.html, styles.css
-→ Labels: ui-change, style-change
-
-PR modifies: App.jsx, styles.css
-→ Labels: ui-change (only)
-```
-
----
-
-### 🔐 Environment Variables Detection
-**Rule Name:** `env-variables`
-
-Detects changes to environment files and flags potential secrets.
-
-**Enable:**
-```yaml
-enabled_rules: '["env-variables"]'
-```
-
-**Labels Applied:**
-- **`env-change`**: Environment configuration files modified
-  - Triggered by: `.env`, `.env.*`, `config.yml`, `config.yaml`, `config.json`
-- **`new-env-variable`**: New environment variable introduced
-  - Detected in git diffs with new lines containing `KEY=value` patterns
-- **`potential-secret-leak`**: Potential secret or sensitive data detected
-  - Flags variables containing: `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN`, `PRIVATE_KEY`, `CREDENTIAL`
-
-**Example:**
-```
-PR adds: .env.production with API_KEY=sk_live_123
-→ Labels: env-change, new-env-variable, potential-secret-leak
-
-PR modifies: config.yml (existing keys only)
-→ Labels: env-change (only)
-```
-
----
-
-### 🔜 Coming Soon
-
-More rules are being developed! See [DESIGN.md](docs/DESIGN.md) for the full roadmap including:
-
-- 🗃️ Database & Migration Detection
-- 🧪 Test Coverage Analysis
-- 📦 Dependency Change Detection
-- 🔧 Environment & Configuration Changes
-- 🏗️ Infrastructure & CI/CD Changes
-- 🔒 Security & Sensitive Changes
-- 📏 PR Size & Structure Analysis
-
-**Want to contribute a new rule?** See [Contributing](#contributing) below!
-
----
-
-## 🏷️ All Labels Reference
-
-Complete guide to all available labels, their meanings, and when they're applied.
-
-### Frontend/UI Labels
-
-#### `ui-change`
-- **Color:** 🟢 Green (`0E8A16`)
-- **Description:** UI/Frontend changes detected
-- **Rule:** `frontend-ui`
-- **When Applied:** Any file with extensions: `.html`, `.css`, `.scss`, `.sass`, `.less`, `.jsx`, `.tsx`, `.vue`
-- **Use Case:** Quickly identify PRs that affect the user interface
-- **Enable:**
-  ```yaml
-  enabled_rules: '["frontend-ui"]'
-  enabled_labels: '["ui-change"]'  # optional: if you only want this label
-  ```
-
-#### `style-change`
-- **Color:** 🟣 Purple (`D4C5F9`)
-- **Description:** Style-only changes (CSS/SCSS)
-- **Rule:** `frontend-ui`
-- **When Applied:** Only style files (`.css`, `.scss`, `.sass`, `.less`) modified WITHOUT JavaScript/TypeScript files
-- **Use Case:** Identify purely cosmetic changes that don't affect logic
-- **Enable:**
-  ```yaml
-  enabled_rules: '["frontend-ui"]'
-  enabled_labels: '["style-change"]'  # optional
-  ```
-
-### Environment & Configuration Labels
-
-#### `env-change`
-- **Color:** 🟠 Orange (`FFA500`)
-- **Description:** Environment configuration files modified
-- **Rule:** `env-variables`
-- **When Applied:** Changes to `.env`, `.env.*`, `config.yml`, `config.yaml`, or `config.json` files
-- **Use Case:** Track configuration changes that might affect deployments
-- **Enable:**
-  ```yaml
-  enabled_rules: '["env-variables"]'
-  enabled_labels: '["env-change"]'  # optional
-  ```
-
-#### `new-env-variable`
-- **Color:** 🟡 Yellow (`FBCA04`)
-- **Description:** New environment variable introduced
-- **Rule:** `env-variables`
-- **When Applied:** Git diff shows new lines with `KEY=value` pattern in environment files
-- **Use Case:** Flag new configuration requirements that need documentation or deployment updates
-- **Enable:**
-  ```yaml
-  enabled_rules: '["env-variables"]'
-  enabled_labels: '["new-env-variable"]'  # optional
-  ```
-
-#### `potential-secret-leak`
-- **Color:** 🔴 Red (`D93F0B`)
-- **Description:** Potential secret or sensitive data detected
-- **Rule:** `env-variables`
-- **When Applied:** New environment variables contain keywords: `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN`, `PRIVATE_KEY`, `CREDENTIAL` (case-insensitive)
-- **Use Case:** Security review required - potential credential exposure
-- **Why Important:** Helps prevent accidental commits of sensitive data
-- **Enable:**
-  ```yaml
-  enabled_rules: '["env-variables"]'
-  enabled_labels: '["potential-secret-leak"]'  # optional
-  ```
-
-### Label Configuration Strategies
-
-#### 🔒 Security-Focused
-Only enable critical security labels:
-```yaml
-enabled_rules: '["env-variables"]'
-enabled_labels: '["potential-secret-leak"]'
-```
-
-#### 🎨 Frontend Team
-Focus on UI changes:
-```yaml
-enabled_rules: '["frontend-ui"]'
-enabled_labels: '["ui-change", "style-change"]'
-```
-
-#### 📦 All Labels
-Enable everything:
-```yaml
-enabled_rules: '["frontend-ui", "env-variables"]'
-# enabled_labels not specified = all labels applied
-```
-
-#### 🎯 Custom Mix
-Pick exactly what you need:
-```yaml
-enabled_rules: '["frontend-ui", "env-variables"]'
-enabled_labels: '["ui-change", "env-change", "potential-secret-leak"]'
-# Excludes: style-change, new-env-variable
-```
-
----
-
-## 🤝 Contributing
-
-We love contributions! Contributing a new rule is now super simple:
-
-### ⚡ Quick: Submit a New Rule (Recommended)
-
-**It's now incredibly easy to contribute!** Just add one file:
-
-1. **Fork this repo**
-2. **Create a file** in `src/rules/` (e.g., `database-migration.js`)
-3. **Copy the template** from `src/rules/RULE_TEMPLATE.js`
-4. **Write your detection logic** (10-50 lines of code typically)
-5. **Submit a PR** with ONLY your new rule file!
-
-**That's it!** No need to modify any other files. The workflow automatically discovers and loads all rules in `src/rules/`.
-
-### Detailed Guide
-
-1. **Read the Contributing Guide**: See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions
-2. **Use the Template**: Copy `src/rules/RULE_TEMPLATE.js` to start your rule
-3. **Implement Your Logic**: Follow the patterns in existing rules
-4. **Test Your Rule**: Verify it works with real PRs
-5. **Submit a PR**: Include only your new rule file
-
-### Option 2: Report Issues or Suggest Rules
-
-- **Bug Report**: Found a problem? [Open an issue](../../issues)
-- **Rule Request**: Have an idea for a rule? [Start a discussion](../../discussions)
-- **Question**: Need help? [Ask in discussions](../../discussions)
-
-### 📝 Example: Creating a Rule in 2 Minutes
-
-A rule is just a JavaScript function that returns labels. Here's a complete example:
-
-```javascript
-// File: src/rules/documentation.js
-
-function documentationRule({ files, pr, enableDebug }) {
-  const labels = [];
-  
-  // Check if any .md files were changed
-  for (const file of files) {
-    if (file.filename.endsWith('.md')) {
-      labels.push('documentation');
-      break;
-    }
-  }
-  
-  return labels;
-}
-
-// Metadata for automatic label creation
-documentationRule.metadata = {
-  name: 'Documentation Detection',
-  description: 'Detects documentation changes',
-  labels: [
-    { 
-      name: 'documentation', 
-      color: '0075CA', 
-      description: 'Documentation updates' 
-    }
-  ],
-  author: 'your-username',
-  version: '1.0.0'
-};
-
-module.exports = documentationRule;
-```
-
-**That's it!** Submit this file and it's automatically discovered and loaded.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for complete guide and more examples!
-
-## 🔧 Advanced Usage
-
-### Version Pinning
-
-Pin to a specific version for stability:
-
-```yaml
-uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@v1.0.0
-```
-
-Or use a commit SHA for maximum control:
-
-```yaml
-uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@abc123def
-```
-
-### Multiple Workflows
-
-You can use different configurations for different scenarios:
-
-```yaml
-# .github/workflows/pr-labeler-main.yml
-on:
-  pull_request:
-    branches: [main]
 jobs:
   label:
     uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@main
     with:
+      # Enable rules (REQUIRED)
+      enabled_rules: '["ui-change", "env-change", "potential-secret-leak"]'
+      
+      # Optional: Filter to specific labels
+      enabled_labels: '["ui-change", "potential-secret-leak"]'
+      
+      # Optional: Custom label names
+      label_overrides: '{"ui-change":"frontend"}'
+      
+      # Optional: Skip certain labels
+      skip_labels: '["style-change"]'
+      
+      # Optional: Debug logging
       enable_debug: false
-
-# .github/workflows/pr-labeler-dev.yml
-on:
-  pull_request:
-    branches: [develop, feature/*]
-jobs:
-  label:
-    uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@main
-    with:
-      enable_debug: true
 ```
 
-### Manual Trigger
-
-Add `workflow_dispatch` to run manually:
-
-```yaml
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-  workflow_dispatch:  # Enable manual runs
-```
+---
 
 ## 🐛 Troubleshooting
 
-### Workflow Not Running
+### Labels Not Applied?
 
-**Problem**: Workflow doesn't trigger on pull requests
+**Problem:** Workflow runs but no labels appear
 
-**Solutions**:
-1. Verify the workflow file is in `.github/workflows/`
-2. Check that permissions are granted:
+**Solutions:**
+1. ✅ **Most Common:** Check if rules are enabled
+   ```yaml
+   enabled_rules: '["ui-change"]'  # Make sure this is not empty!
+   ```
+2. ✅ Enable debug mode to see what's happening:
+   ```yaml
+   enable_debug: true
+   ```
+3. ✅ Check workflow logs for messages like:
+   - `⚠️ No rules enabled`
+   - `⚠️ No rules loaded`
+4. ✅ Verify PR files match rule criteria (check file extensions)
+
+### Workflow Not Running?
+
+**Solutions:**
+1. ✅ Verify file is at `.github/workflows/pr-labeler.yml`
+2. ✅ Check permissions are set:
    ```yaml
    permissions:
      contents: read
      pull-requests: write
    ```
-3. Ensure the workflow is enabled in your repository settings
+3. ✅ Ensure GitHub Actions is enabled in repository settings
 
-### Labels Not Applied
+### Permission Errors?
 
-**Problem**: Workflow runs but no labels are applied
+**Solutions:**
+1. ✅ Add required permissions to workflow
+2. ✅ Check organization/repository policies don't block Actions
 
-**Solutions**:
-1. **Most Common:** Verify you've enabled rules. All rules are disabled by default!
-   ```yaml
-   with:
-     enabled_rules: '["frontend-ui", "env-variables"]'
-   ```
-2. Enable debug mode to see what's happening:
-   ```yaml
-   with:
-     enable_debug: true
-   ```
-3. Check the workflow logs in the Actions tab for messages like:
-   - `⚠️ No rules enabled`
-   - `⚠️ No rules loaded`
-4. Verify PR contains files that match rule criteria
-5. Check if labels are being skipped via `skip_labels`
-
-### Permission Denied
-
-**Problem**: Error: "Resource not accessible by integration"
-
-**Solutions**:
-1. Add required permissions to workflow:
-   ```yaml
-   permissions:
-     pull-requests: write
-   ```
-2. Verify GitHub Actions is enabled in repository settings
-3. Check organization/repository policies don't block Actions
-
-### Labels Not Created
-
-**Problem**: Workflow tries to create labels but fails
-
-**Solutions**:
-1. Verify the user/bot has permission to create labels
-2. Check if label names are valid (no special characters)
-3. Ensure color codes are valid hex values (without `#`)
+---
 
 ## 📖 How It Works
 
-1. **Trigger**: Workflow runs when a PR is opened, updated, or reopened
-2. **Fetch**: Downloads PR file information from GitHub API
-3. **Analyze**: Runs each rule against the PR files
-4. **Collect**: Gathers all labels from all rules
-5. **Apply**: Adds labels to the PR (creates them if needed)
+1. **PR Created/Updated** → Workflow triggers
+2. **Analyze Files** → Checks file types and content
+3. **Run Rules** → Each enabled rule checks the PR
+4. **Collect Labels** → Gathers all matching labels
+5. **Apply Labels** → Adds labels to PR (creates if needed)
 
-### Architecture
+**That's it!** Simple and fast. 🚀
 
-```
-Pull Request Event
-    ↓
-Checkout Repository
-    ↓
-Fetch PR Files ← GitHub API
-    ↓
-Execute Rules (in order)
-  ├─ Frontend/UI Rule
-  ├─ [Your Rule Here]
-  └─ [More Rules...]
-    ↓
-Collect Labels
-  ├─ Apply Overrides
-  └─ Filter Skipped
-    ↓
-Apply Labels ← GitHub API
-  └─ Create if Needed
-    ↓
-Done ✅
-```
+---
 
-## 🧪 Testing
+## 🤝 Contributing
 
-### Running Tests
+Want to add a new rule? It's super easy!
 
-This project uses Jest for testing. To run tests:
+1. **Create a file** in `src/rules/` (e.g., `database-migration.js`)
+2. **Use the template** from `src/rules/RULE_TEMPLATE.js`
+3. **Write detection logic** (usually 10-50 lines)
+4. **Submit a PR** with just your new file!
 
-```bash
-# Install dependencies
-npm install
+**See [CONTRIBUTING.md](CONTRIBUTING.md) for complete guide.**
 
-# Run all tests
-npm test
+---
 
-# Run tests in watch mode
-npm run test:watch
+## 📝 Examples
 
-# Run tests with coverage
-npm run test:coverage
+### Example 1: Frontend Change
+**PR modifies:** `index.html`, `styles.css`
+
+**Configuration:**
+```yaml
+enabled_rules: '["ui-change", "style-change"]'
 ```
 
-### Test Coverage
+**Result:** Gets `ui-change` and `style-change` labels
 
-We maintain high test coverage:
-- Minimum 80% coverage required
-- Automated tests run on every PR
-- Coverage reports available in CI artifacts
+---
 
-### Writing Tests
+### Example 2: Adding Secret
+**PR adds:** `.env` with `API_KEY=secret123`
 
-When contributing a new rule, include tests:
-
-```javascript
-// __tests__/my-rule.test.js
-const myRule = require('../src/rules/my-rule');
-
-describe('My Rule', () => {
-  it('should detect target files', () => {
-    const files = [{ filename: 'target.ext' }];
-    const labels = myRule({ files, pr: {}, enableDebug: false });
-    expect(labels).toContain('my-label');
-  });
-});
+**Configuration:**
+```yaml
+enabled_rules: '["env-change", "new-env-variable", "potential-secret-leak"]'
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed testing guidelines.
+**Result:** Gets `env-change`, `new-env-variable`, and `potential-secret-leak` labels
 
-### CI/CD
+---
 
-Tests run automatically on:
-- Pull request creation and updates
-- Push to main branch
-- Manual workflow dispatch
+### Example 3: Only UI Files
+**PR modifies:** `App.jsx`, `Component.tsx`
 
-The test workflow includes:
-- ✅ Unit tests (Node 18 & 20)
-- 🔍 Syntax validation
-- 📋 Structure validation
-- 📊 Coverage reporting
+**Configuration:**
+```yaml
+enabled_rules: '["ui-change"]'
+```
+
+**Result:** Gets `ui-change` label (no `style-change` because JS files are present)
+
+---
+
+## 🔗 Useful Links
+
+- **📖 Full Documentation:** [docs/DESIGN.md](docs/DESIGN.md)
+- **🤝 Contributing Guide:** [CONTRIBUTING.md](CONTRIBUTING.md)
+- **💬 Discussions:** [GitHub Discussions](https://github.com/workflow-kit/pr-auto-labeler/discussions)
+- **🐛 Issues:** [GitHub Issues](https://github.com/workflow-kit/pr-auto-labeler/issues)
+- **📋 Roadmap:** [DESIGN.md](docs/DESIGN.md)
+
+---
 
 ## 📜 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Built with [GitHub Actions](https://github.com/features/actions)
-- Uses [actions/github-script](https://github.com/actions/github-script)
-- Inspired by community feedback and real-world needs
-
-## 📞 Support
-
-- **📖 Documentation**: You're reading it!
-- **💬 Discussions**: [GitHub Discussions](../../discussions)
-- **🐛 Issues**: [GitHub Issues](../../issues)
-- **📝 Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-- **📋 Roadmap**: [DESIGN.md](docs/DESIGN.md)
-
 ---
 
-Made with ❤️ by the community • [Contribute](CONTRIBUTING.md) • [Report Bug](../../issues) • [Request Feature](../../discussions)
+**Made with ❤️ by the community**
+
+*Need help? [Open an issue](https://github.com/workflow-kit/pr-auto-labeler/issues) or [start a discussion](https://github.com/workflow-kit/pr-auto-labeler/discussions)*
