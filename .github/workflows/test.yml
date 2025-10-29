@@ -46,71 +46,15 @@ jobs:
           path: coverage/
           retention-days: 30
       
-      - name: Comment PR with coverage
-        if: github.event_name == 'pull_request' && matrix.node-version == '20.x'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            
-            // Read coverage summary
-            let coverageSummary = '';
-            try {
-              const coveragePath = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
-              if (fs.existsSync(coveragePath)) {
-                const coverage = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
-                const total = coverage.total;
-                
-                coverageSummary = `
-## 📊 Test Coverage Report
-
-| Metric | Coverage |
-|--------|----------|
-| 🌿 Branches | ${total.branches.pct}% |
-| 🔢 Functions | ${total.functions.pct}% |
-| 📄 Lines | ${total.lines.pct}% |
-| 📝 Statements | ${total.statements.pct}% |
-
-Coverage details are available in the workflow artifacts.
-                `;
-              }
-            } catch (error) {
-              console.error('Error reading coverage:', error);
-              coverageSummary = '⚠️ Could not read coverage report';
-            }
-            
-            // Find existing coverage comment
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-            });
-            
-            const botComment = comments.data.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('Test Coverage Report')
-            );
-            
-            const commentBody = `## ✅ Tests Passed\n\n${coverageSummary}\n\n*Automated comment by PR Auto-Labeler CI*`;
-            
-            if (botComment) {
-              // Update existing comment
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: commentBody
-              });
-            } else {
-              // Create new comment
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-                body: commentBody
-              });
-            }
+      - name: Display coverage summary
+        if: matrix.node-version == '20.x'
+        run: |
+          echo "📊 Test Coverage Summary:"
+          if [ -f coverage/coverage-summary.json ]; then
+            cat coverage/coverage-summary.json | grep -A 5 '"total"'
+          else
+            echo "Coverage file not found"
+          fi
 
   lint:
     runs-on: ubuntu-latest
