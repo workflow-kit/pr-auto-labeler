@@ -21,6 +21,7 @@ const dockerChangeRule = require('./infrastructure/docker-change');
 
 // Database rules
 const migrationRule = require('./database/migration');
+const riskyMigrationRule = require('./database/risky-migration');
 
 // Export all rules as an array
 module.exports = [
@@ -36,5 +37,6 @@ module.exports = [
   dockerChangeRule,
   // Database rules
   migrationRule,
+  riskyMigrationRule,
 ];
 

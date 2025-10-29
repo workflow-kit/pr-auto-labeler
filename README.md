@@ -45,6 +45,7 @@ Choose which rules to enable from the table below:
 | `potential-secret-leak` | `potential-secret-leak` 🔴 | Secrets detected | Keywords: `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN` | Security review |
 | `docker-change` | `docker-change` ⚫ | Docker files | `Dockerfile`, `.dockerignore`, `docker-compose.yml` | Track Docker config |
 | `migration` | `migration` 🔵 | Migration files | `migrations/**`, `db/migrations/**`, `database/migrations/**` | Track DB migrations |
+| `risky-migration` | `risky-migration` 🔴 | Risky migrations | DROP, TRUNCATE, ALTER DROP in migration files | Flag dangerous operations |
 
 **Example configurations:**
 ```yaml
