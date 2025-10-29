@@ -66,39 +66,70 @@ module.exports = async ({ github, context, core }) => {
   
   let rules = [];
   
-  try {
-    // List all files in src/rules/ directory
-    const { data: ruleFiles } = await github.rest.repos.getContent({
-      owner: workflowRepo.owner,
-      repo: workflowRepo.repo,
-      path: 'src/rules',
-      ref: 'main'
-    });
+  // Helper function to recursively discover rule files
+  async function discoverRules(path = 'src/rules') {
+    const ruleFiles = [];
     
+    try {
+      const { data: contents } = await github.rest.repos.getContent({
+        owner: workflowRepo.owner,
+        repo: workflowRepo.repo,
+        path: path,
+        ref: 'main'
+      });
+      
+      for (const item of contents) {
+        if (item.type === 'dir') {
+          // Recursively discover rules in subdirectories
+          const subRules = await discoverRules(item.path);
+          ruleFiles.push(...subRules);
+        } else if (item.name.endsWith('.js') && 
+                   item.name !== 'index.js' && 
+                   !item.name.includes('TEMPLATE')) {
+          // Extract rule name from path (e.g., "src/rules/frontend/ui-change.js" -> "frontend/ui-change")
+          const ruleName = item.path
+            .replace('src/rules/', '')
+            .replace('.js', '');
+          
+          ruleFiles.push({
+            name: item.name,
+            path: item.path,
+            ruleName: ruleName
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Error discovering rules in ${path}:`, error.message);
+    }
+    
+    return ruleFiles;
+  }
+  
+  try {
     if (enableDebug) {
       console.log(`\n🔍 Discovering rules in src/rules/...`);
     }
     
-    // Filter for .js files (exclude template and index)
-    const jsFiles = ruleFiles.filter(file => 
-      file.name.endsWith('.js') && 
-      file.name !== 'index.js' &&
-      !file.name.includes('TEMPLATE')
-    );
+    // Discover all rule files recursively
+    const ruleFiles = await discoverRules();
     
     if (enableDebug) {
-      console.log(`Found ${jsFiles.length} rule files: ${jsFiles.map(f => f.name).join(', ')}`);
+      console.log(`Found ${ruleFiles.length} rule files: ${ruleFiles.map(f => f.ruleName).join(', ')}`);
     }
     
     // Load each rule file (only if enabled)
-    for (const file of jsFiles) {
-      // Extract rule name from filename (remove .js extension)
-      const ruleName = file.name.replace('.js', '');
-      
+    for (const file of ruleFiles) {
       // Check if this rule is enabled
-      if (!enabledRules.includes(ruleName)) {
+      // Support both formats: "frontend/ui-change" and "ui-change" and old format "frontend-ui"
+      const isEnabled = enabledRules.some(enabledRule => {
+        return enabledRule === file.ruleName || // Full path match (frontend/ui-change)
+               enabledRule === file.name.replace('.js', '') || // Filename only (ui-change)
+               (file.ruleName.includes('/') && enabledRule === file.ruleName.replace('/', '-')); // Legacy format (frontend-ui)
+      });
+      
+      if (!isEnabled) {
         if (enableDebug) {
-          console.log(`⏭️  Skipping disabled rule: ${ruleName}`);
+          console.log(`⏭️  Skipping disabled rule: ${file.ruleName}`);
         }
         continue;
       }
@@ -123,7 +154,7 @@ module.exports = async ({ github, context, core }) => {
         if (typeof ruleFunction === 'function') {
           rules.push(ruleFunction);
           if (enableDebug) {
-            console.log(`✅ Loaded enabled rule: ${ruleFunction.metadata?.name || file.name}`);
+            console.log(`✅ Loaded enabled rule: ${ruleFunction.metadata?.name || file.ruleName}`);
           }
         }
       } catch (error) {

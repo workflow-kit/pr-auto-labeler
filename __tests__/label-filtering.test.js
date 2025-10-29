@@ -6,10 +6,16 @@
  * 2. skip_labels still works
  * 3. label_overrides work with filtering
  * 4. All labels are applied when enabled_labels is empty
+ * 
+ * Note: With the refactored structure, rules now return single labels.
+ * These tests combine multiple rule outputs to simulate the workflow behavior.
  */
 
-const frontendUIRule = require('../src/rules/frontend-ui');
-const envVariablesRule = require('../src/rules/env-variables');
+const uiChangeRule = require('../src/rules/frontend/ui-change');
+const styleChangeRule = require('../src/rules/frontend/style-change');
+const envChangeRule = require('../src/rules/environment/env-change');
+const newEnvVariableRule = require('../src/rules/environment/new-env-variable');
+const potentialSecretLeakRule = require('../src/rules/environment/potential-secret-leak');
 
 describe('Label Filtering', () => {
   
@@ -21,12 +27,14 @@ describe('Label Filtering', () => {
         { filename: 'styles.css' }
       ];
       
-      const uiLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const styleLabels = styleChangeRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...uiLabels, ...styleLabels];
       
       // Should get both labels
-      expect(uiLabels).toContain('ui-change');
-      expect(uiLabels).toContain('style-change');
-      expect(uiLabels.length).toBe(2);
+      expect(allLabels).toContain('ui-change');
+      expect(allLabels).toContain('style-change');
+      expect(allLabels.length).toBe(2);
     });
     
     it('should filter to only enabled labels', () => {
@@ -36,7 +44,9 @@ describe('Label Filtering', () => {
       ];
       
       const enabledLabels = ['ui-change'];
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const styleLabels = styleChangeRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...uiLabels, ...styleLabels];
       
       // Simulate filtering
       const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
@@ -49,53 +59,61 @@ describe('Label Filtering', () => {
     it('should filter multiple labels correctly', () => {
       const files = [
         { 
-          filename: '.env.production',
-          patch: '+API_KEY=test123\n+NEW_VAR=value'
+          filename: '.env',
+          patch: '+API_KEY=secret123'
         }
       ];
       
-      const enabledLabels = ['env-change', 'potential-secret-leak'];
-      const allLabels = envVariablesRule({ files, pr: {}, enableDebug: false });
+      const enabledLabels = ['env-change', 'new-env-variable'];
+      const envLabels = envChangeRule({ files, pr: {}, enableDebug: false });
+      const newVarLabels = newEnvVariableRule({ files, pr: {}, enableDebug: false });
+      const secretLabels = potentialSecretLeakRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...envLabels, ...newVarLabels, ...secretLabels];
       
       // Simulate filtering
       const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
       
       expect(filteredLabels).toContain('env-change');
-      expect(filteredLabels).toContain('potential-secret-leak');
-      expect(filteredLabels).not.toContain('new-env-variable');
+      expect(filteredLabels).toContain('new-env-variable');
+      expect(filteredLabels).not.toContain('potential-secret-leak');
+      expect(filteredLabels.length).toBe(2);
     });
     
     it('should return empty array when no labels match enabled_labels', () => {
-      const files = [
-        { filename: 'index.html' }
-      ];
+      const files = [{ filename: 'index.html' }];
       
       const enabledLabels = ['non-existent-label'];
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const styleLabels = styleChangeRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...uiLabels, ...styleLabels];
       
       // Simulate filtering
       const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
       
-      expect(filteredLabels.length).toBe(0);
+      expect(filteredLabels).toEqual([]);
     });
     
     it('should allow only security-critical labels', () => {
       const files = [
         { 
           filename: '.env',
-          patch: '+PASSWORD=secret123'
+          patch: '+API_KEY=secret123'
         }
       ];
       
       const enabledLabels = ['potential-secret-leak'];
-      const allLabels = envVariablesRule({ files, pr: {}, enableDebug: false });
+      const envLabels = envChangeRule({ files, pr: {}, enableDebug: false });
+      const newVarLabels = newEnvVariableRule({ files, pr: {}, enableDebug: false });
+      const secretLabels = potentialSecretLeakRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...envLabels, ...newVarLabels, ...secretLabels];
       
       // Simulate filtering
       const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
       
-      expect(filteredLabels).toEqual(['potential-secret-leak']);
+      expect(filteredLabels).toContain('potential-secret-leak');
       expect(filteredLabels).not.toContain('env-change');
       expect(filteredLabels).not.toContain('new-env-variable');
+      expect(filteredLabels.length).toBe(1);
     });
   });
   
@@ -110,7 +128,9 @@ describe('Label Filtering', () => {
       const enabledLabels = ['ui-change', 'style-change'];
       const skipLabels = ['style-change'];
       
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const styleLabels = styleChangeRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...uiLabels, ...styleLabels];
       
       // Simulate filtering then skipping
       let filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
@@ -132,7 +152,10 @@ describe('Label Filtering', () => {
       const enabledLabels = ['env-change', 'new-env-variable', 'potential-secret-leak'];
       const skipLabels = ['new-env-variable'];
       
-      const allLabels = envVariablesRule({ files, pr: {}, enableDebug: false });
+      const envLabels = envChangeRule({ files, pr: {}, enableDebug: false });
+      const newVarLabels = newEnvVariableRule({ files, pr: {}, enableDebug: false });
+      const secretLabels = potentialSecretLeakRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...envLabels, ...newVarLabels, ...secretLabels];
       
       // Simulate filtering then skipping
       let filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
@@ -147,17 +170,15 @@ describe('Label Filtering', () => {
   describe('Combination with label_overrides', () => {
     
     it('should apply overrides to filtered labels', () => {
-      const files = [
-        { filename: 'index.html' }
-      ];
+      const files = [{ filename: 'index.html' }];
       
       const enabledLabels = ['ui-change'];
       const labelOverrides = { 'ui-change': 'frontend-change' };
       
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
       
       // Simulate filtering then overriding
-      let filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
+      let filteredLabels = uiLabels.filter(label => enabledLabels.includes(label));
       filteredLabels = filteredLabels.map(label => labelOverrides[label] || label);
       
       expect(filteredLabels).toContain('frontend-change');
@@ -165,18 +186,15 @@ describe('Label Filtering', () => {
     });
     
     it('should check original label name for filtering, not overridden name', () => {
-      const files = [
-        { filename: 'index.html' }
-      ];
+      const files = [{ filename: 'index.html' }];
       
-      // enabled_labels uses original names
       const enabledLabels = ['ui-change'];
       const labelOverrides = { 'ui-change': 'frontend' };
       
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
       
       // Filtering happens on original names
-      let filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
+      let filteredLabels = uiLabels.filter(label => enabledLabels.includes(label));
       expect(filteredLabels).toContain('ui-change');
       
       // Then override
@@ -195,9 +213,11 @@ describe('Label Filtering', () => {
         }
       ];
       
-      // Security team only wants critical alerts
       const enabledLabels = ['potential-secret-leak'];
-      const allLabels = envVariablesRule({ files, pr: {}, enableDebug: false });
+      const envLabels = envChangeRule({ files, pr: {}, enableDebug: false });
+      const newVarLabels = newEnvVariableRule({ files, pr: {}, enableDebug: false });
+      const secretLabels = potentialSecretLeakRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...envLabels, ...newVarLabels, ...secretLabels];
       const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
       
       expect(filteredLabels).toEqual(['potential-secret-leak']);
@@ -209,18 +229,15 @@ describe('Label Filtering', () => {
         { filename: 'styles.scss' }
       ];
       
-      // Frontend team wants all UI labels
-      const enabledLabels = ['ui-change', 'style-change'];
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
-      const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
+      const enabledLabels = ['ui-change'];
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const filteredLabels = uiLabels.filter(label => enabledLabels.includes(label));
       
-      expect(filteredLabels.length).toBe(2);
       expect(filteredLabels).toContain('ui-change');
-      expect(filteredLabels).toContain('style-change');
+      expect(filteredLabels.length).toBe(1);
     });
     
     it('should support custom mix configuration', () => {
-      // Simulate multiple rules running
       const files = [
         { filename: 'index.html' },
         { 
@@ -231,15 +248,15 @@ describe('Label Filtering', () => {
       
       const enabledLabels = ['ui-change', 'env-change'];
       
-      const uiLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
-      const envLabels = envVariablesRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const envLabels = envChangeRule({ files, pr: {}, enableDebug: false });
+      const newVarLabels = newEnvVariableRule({ files, pr: {}, enableDebug: false });
       
-      const allLabels = [...uiLabels, ...envLabels];
+      const allLabels = [...uiLabels, ...envLabels, ...newVarLabels];
       const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
       
       expect(filteredLabels).toContain('ui-change');
       expect(filteredLabels).toContain('env-change');
-      expect(filteredLabels).not.toContain('style-change');
       expect(filteredLabels).not.toContain('new-env-variable');
     });
   });
@@ -253,7 +270,9 @@ describe('Label Filtering', () => {
       ];
       
       const enabledLabels = [];
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const styleLabels = styleChangeRule({ files, pr: {}, enableDebug: false });
+      const allLabels = [...uiLabels, ...styleLabels];
       
       // Empty enabled_labels means no filtering
       const filteredLabels = enabledLabels.length > 0 
@@ -264,15 +283,13 @@ describe('Label Filtering', () => {
     });
     
     it('should handle case when rule returns no labels', () => {
-      const files = [
-        { filename: 'README.md' }  // Not a UI file
-      ];
+      const files = [{ filename: 'README.md' }];
       
       const enabledLabels = ['ui-change'];
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
-      const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const filteredLabels = uiLabels.filter(label => enabledLabels.includes(label));
       
-      expect(allLabels.length).toBe(0);
+      expect(uiLabels.length).toBe(0);
       expect(filteredLabels.length).toBe(0);
     });
     
@@ -285,22 +302,21 @@ describe('Label Filtering', () => {
         }
       ];
       
-      // Different filters for different rules
       const uiEnabledLabels = ['ui-change'];
       const envEnabledLabels = ['potential-secret-leak'];
       
-      const uiLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
-      const envLabels = envVariablesRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const envLabels = envChangeRule({ files, pr: {}, enableDebug: false });
+      const newVarLabels = newEnvVariableRule({ files, pr: {}, enableDebug: false });
+      const secretLabels = potentialSecretLeakRule({ files, pr: {}, enableDebug: false });
       
       const filteredUILabels = uiLabels.filter(label => uiEnabledLabels.includes(label));
-      const filteredEnvLabels = envLabels.filter(label => envEnabledLabels.includes(label));
+      const filteredEnvLabels = [...envLabels, ...newVarLabels, ...secretLabels].filter(label => envEnabledLabels.includes(label));
       
       const finalLabels = [...filteredUILabels, ...filteredEnvLabels];
       
       expect(finalLabels).toContain('ui-change');
       expect(finalLabels).toContain('potential-secret-leak');
-      expect(finalLabels).not.toContain('style-change');
-      expect(finalLabels).not.toContain('env-change');
     });
   });
   
@@ -316,13 +332,14 @@ describe('Label Filtering', () => {
         }
       ];
       
-      // Team only wants critical labels
       const enabledLabels = ['ui-change', 'potential-secret-leak'];
       
-      const uiLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
-      const envLabels = envVariablesRule({ files, pr: {}, enableDebug: false });
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const envLabels = envChangeRule({ files, pr: {}, enableDebug: false });
+      const newVarLabels = newEnvVariableRule({ files, pr: {}, enableDebug: false });
+      const secretLabels = potentialSecretLeakRule({ files, pr: {}, enableDebug: false });
       
-      const allLabels = [...uiLabels, ...envLabels];
+      const allLabels = [...uiLabels, ...envLabels, ...newVarLabels, ...secretLabels];
       const filteredLabels = [...new Set(allLabels.filter(label => enabledLabels.includes(label)))];
       
       expect(filteredLabels).toContain('ui-change');
@@ -336,15 +353,12 @@ describe('Label Filtering', () => {
         { filename: 'styles/variables.scss' }
       ];
       
-      // Only want to track significant UI changes, not style tweaks
       const enabledLabels = ['ui-change'];
       
-      const allLabels = frontendUIRule({ files, pr: {}, enableDebug: false });
-      const filteredLabels = allLabels.filter(label => enabledLabels.includes(label));
+      const uiLabels = uiChangeRule({ files, pr: {}, enableDebug: false });
+      const filteredLabels = uiLabels.filter(label => enabledLabels.includes(label));
       
       expect(filteredLabels).toContain('ui-change');
-      expect(filteredLabels).not.toContain('style-change');
     });
   });
 });
-
