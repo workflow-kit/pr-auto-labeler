@@ -1,0 +1,191 @@
+name: PR Auto Labeler
+
+on:
+  workflow_call:
+    inputs:
+      label_overrides:
+        description: 'Custom label names to override defaults (JSON)'
+        required: false
+        type: string
+        default: '{}'
+      large_pr_threshold:
+        description: 'Number of changed lines considered a large PR'
+        required: false
+        type: number
+        default: 500
+      enable_debug:
+        description: 'Enable debug logs in workflow output'
+        required: false
+        type: boolean
+        default: false
+      skip_labels:
+        description: 'Labels to skip applying (JSON array)'
+        required: false
+        type: string
+        default: '[]'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Fetch PR information
+        id: pr-info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            
+            core.setOutput('files', JSON.stringify(files));
+            core.setOutput('pr_number', context.payload.pull_request.number);
+            return { files, pr_number: context.payload.pull_request.number };
+            
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Analyze changes and apply labels
+        uses: actions/github-script@v7
+        env:
+          ENABLE_DEBUG: ${{ inputs.enable_debug }}
+          LABEL_OVERRIDES: ${{ inputs.label_overrides }}
+          SKIP_LABELS: ${{ inputs.skip_labels }}
+          LARGE_PR_THRESHOLD: ${{ inputs.large_pr_threshold }}
+        with:
+          script: |
+            const files = JSON.parse('${{ steps.pr-info.outputs.files }}');
+            const prNumber = ${{ steps.pr-info.outputs.pr_number }};
+            const enableDebug = process.env.ENABLE_DEBUG === 'true';
+            const labelOverrides = JSON.parse(process.env.LABEL_OVERRIDES || '{}');
+            const skipLabels = JSON.parse(process.env.SKIP_LABELS || '[]');
+            
+            // Debug logging
+            if (enableDebug) {
+              console.log('Files in PR:', files.map(f => f.filename));
+              console.log('Label overrides:', labelOverrides);
+              console.log('Skip labels:', skipLabels);
+            }
+            
+            // Labels to apply
+            const labelsToApply = new Set();
+            
+            // Helper function to get label name (with override support)
+            function getLabel(defaultLabel) {
+              return labelOverrides[defaultLabel] || defaultLabel;
+            }
+            
+            // Helper function to check if label should be skipped
+            function shouldSkip(label) {
+              return skipLabels.includes(label);
+            }
+            
+            // Frontend/UI detection
+            const uiExtensions = ['.html', '.css', '.scss', '.sass', '.less', '.jsx', '.tsx', '.vue'];
+            const styleExtensions = ['.css', '.scss', '.sass', '.less'];
+            const jsExtensions = ['.js', '.jsx', '.ts', '.tsx', '.vue'];
+            
+            let hasUIChanges = false;
+            let hasStyleChanges = false;
+            let hasJSChanges = false;
+            
+            for (const file of files) {
+              const filename = file.filename.toLowerCase();
+              const ext = filename.substring(filename.lastIndexOf('.'));
+              
+              // Check for UI changes
+              if (uiExtensions.includes(ext)) {
+                hasUIChanges = true;
+                
+                if (styleExtensions.includes(ext)) {
+                  hasStyleChanges = true;
+                }
+                
+                if (jsExtensions.includes(ext)) {
+                  hasJSChanges = true;
+                }
+              }
+              
+              if (enableDebug) {
+                console.log(`File: ${filename}, Extension: ${ext}, UI: ${uiExtensions.includes(ext)}`);
+              }
+            }
+            
+            // Apply labels based on detection
+            if (hasUIChanges) {
+              const uiLabel = getLabel('ui-change');
+              if (!shouldSkip(uiLabel)) {
+                labelsToApply.add(uiLabel);
+              }
+              
+              // If only style files changed (no JS/TS)
+              if (hasStyleChanges && !hasJSChanges) {
+                const styleLabel = getLabel('style-change');
+                if (!shouldSkip(styleLabel)) {
+                  labelsToApply.add(styleLabel);
+                }
+              }
+            }
+            
+            if (enableDebug) {
+              console.log('Labels to apply:', Array.from(labelsToApply));
+            }
+            
+            // Apply labels to PR
+            if (labelsToApply.size > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  labels: Array.from(labelsToApply)
+                });
+                console.log(`✅ Successfully applied labels: ${Array.from(labelsToApply).join(', ')}`);
+              } catch (error) {
+                // Labels might not exist, try to create them
+                for (const label of labelsToApply) {
+                  try {
+                    await github.rest.issues.createLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      name: label,
+                      color: label === 'ui-change' ? '0E8A16' : 'D4C5F9',
+                      description: label === 'ui-change' ? 'UI/Frontend changes detected' : 'Style-only changes'
+                    });
+                    console.log(`✅ Created label: ${label}`);
+                  } catch (createError) {
+                    console.log(`Label ${label} might already exist or couldn't be created`);
+                  }
+                }
+                
+                // Try applying labels again
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  labels: Array.from(labelsToApply)
+                });
+                console.log(`✅ Successfully applied labels: ${Array.from(labelsToApply).join(', ')}`);
+              }
+            } else {
+              console.log('ℹ️  No labels to apply based on current rules');
+            }
+
