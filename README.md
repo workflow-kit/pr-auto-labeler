@@ -56,33 +56,46 @@ permissions:
 jobs:
   label:
     uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@main
+    with:
+      # Enable the rules you want to use
+      enabled_rules: '["frontend-ui", "env-variables"]'
 ```
 
 ### Step 2: That's It!
 
 Create a pull request and watch the magic happen! 🎉
 
+> **💡 Note:** Rules are disabled by default. You must specify which rules to enable using the `enabled_rules` parameter. See [Current Rules](#-current-rules) for available options.
+
 ## ⚙️ Configuration
+
+### ⚠️ Important: Rules are Disabled by Default
+
+**All rules are disabled by default.** You must explicitly enable the rules you want to use.
 
 ### Basic Configuration
 
-Customize behavior with input parameters:
+Enable rules and customize behavior with input parameters:
 
 ```yaml
 jobs:
   label:
     uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@main
     with:
-      # Enable debug logging (default: false)
+      # ✅ REQUIRED: Enable specific rules (JSON array)
+      # All rules are disabled by default
+      enabled_rules: '["frontend-ui", "env-variables"]'
+      
+      # Optional: Enable debug logging (default: false)
       enable_debug: true
       
-      # Threshold for large PR detection (default: 500)
+      # Optional: Threshold for large PR detection (default: 500)
       large_pr_threshold: 800
       
-      # Override default label names (JSON object)
+      # Optional: Override default label names (JSON object)
       label_overrides: '{"ui-change":"frontend-change"}'
       
-      # Skip specific labels (JSON array)
+      # Optional: Skip specific labels (JSON array)
       skip_labels: '["style-change"]'
 ```
 
@@ -90,6 +103,7 @@ jobs:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
+| `enabled_rules` | JSON Array | `[]` | **Rules to enable** (all disabled by default). See [Available Rules](#-current-rules) |
 | `label_overrides` | JSON Object | `{}` | Map default labels to custom names |
 | `large_pr_threshold` | Number | `500` | Lines changed to trigger `large-pr` label |
 | `enable_debug` | Boolean | `false` | Enable detailed debug logging |
@@ -134,9 +148,17 @@ This will show detailed logs including:
 
 ## 📚 Current Rules
 
+> **💡 Remember:** All rules are disabled by default. Add them to `enabled_rules` to use them!
+
 ### 🎨 Frontend/UI Detection
+**Rule Name:** `frontend-ui` 
 
 Detects changes to frontend and UI files.
+
+**Enable:**
+```yaml
+enabled_rules: '["frontend-ui"]'
+```
 
 **Labels Applied:**
 - **`ui-change`** (🟢 Green): UI/Frontend files modified
@@ -151,6 +173,35 @@ PR modifies: index.html, styles.css
 
 PR modifies: App.jsx, styles.css
 → Labels: ui-change (only)
+```
+
+---
+
+### 🔐 Environment Variables Detection
+**Rule Name:** `env-variables`
+
+Detects changes to environment files and flags potential secrets.
+
+**Enable:**
+```yaml
+enabled_rules: '["env-variables"]'
+```
+
+**Labels Applied:**
+- **`env-change`**: Environment configuration files modified
+  - Triggered by: `.env`, `.env.*`, `config.yml`, `config.yaml`, `config.json`
+- **`new-env-variable`**: New environment variable introduced
+  - Detected in git diffs with new lines containing `KEY=value` patterns
+- **`potential-secret-leak`**: Potential secret or sensitive data detected
+  - Flags variables containing: `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN`, `PRIVATE_KEY`, `CREDENTIAL`
+
+**Example:**
+```
+PR adds: .env.production with API_KEY=sk_live_123
+→ Labels: env-change, new-env-variable, potential-secret-leak
+
+PR modifies: config.yml (existing keys only)
+→ Labels: env-change (only)
 ```
 
 ---
@@ -316,14 +367,21 @@ on:
 **Problem**: Workflow runs but no labels are applied
 
 **Solutions**:
-1. Enable debug mode to see what's happening:
+1. **Most Common:** Verify you've enabled rules. All rules are disabled by default!
+   ```yaml
+   with:
+     enabled_rules: '["frontend-ui", "env-variables"]'
+   ```
+2. Enable debug mode to see what's happening:
    ```yaml
    with:
      enable_debug: true
    ```
-2. Check the workflow logs in the Actions tab
-3. Verify PR contains files that match rule criteria
-4. Check if labels are being skipped via `skip_labels`
+3. Check the workflow logs in the Actions tab for messages like:
+   - `⚠️ No rules enabled`
+   - `⚠️ No rules loaded`
+4. Verify PR contains files that match rule criteria
+5. Check if labels are being skipped via `skip_labels`
 
 ### Permission Denied
 
