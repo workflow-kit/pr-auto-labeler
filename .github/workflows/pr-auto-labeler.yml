@@ -58,6 +58,20 @@ jobs:
           LARGE_PR_THRESHOLD: ${{ inputs.large_pr_threshold }}
         with:
           script: |
-            const workflowScript = require('./src/workflow-script.js');
+            // Fetch the workflow script from pr-auto-labeler repository
+            const { data: scriptFile } = await github.rest.repos.getContent({
+              owner: 'workflow-kit',
+              repo: 'pr-auto-labeler',
+              path: 'src/workflow-script.js',
+              ref: 'main'
+            });
+            
+            // Decode and execute the script
+            const scriptContent = Buffer.from(scriptFile.content, 'base64').toString('utf-8');
+            const workflowModule = {};
+            const moduleFunction = new Function('exports', 'module', 'github', 'context', 'core', scriptContent + '\nreturn module.exports;');
+            const workflowScript = moduleFunction({}, workflowModule, github, context, core);
+            
+            // Execute the workflow script
             await workflowScript({ github, context, core });
 
