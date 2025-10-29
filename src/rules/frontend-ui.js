@@ -23,19 +23,26 @@ module.exports = function frontendUIRule({ files, pr, enableDebug }) {
   
   // Analyze files
   for (const file of files) {
+    // Skip files with null or undefined filename
+    if (!file.filename) {
+      continue;
+    }
+    
     const filename = file.filename.toLowerCase();
     const ext = filename.substring(filename.lastIndexOf('.'));
     
+    // Check for UI changes
     if (uiExtensions.includes(ext)) {
       hasUIChanges = true;
       
       if (styleExtensions.includes(ext)) {
         hasStyleChanges = true;
       }
-      
-      if (jsExtensions.includes(ext)) {
-        hasJSChanges = true;
-      }
+    }
+    
+    // Check for JS/TS changes (even if not in UI extensions)
+    if (jsExtensions.includes(ext)) {
+      hasJSChanges = true;
     }
     
     if (enableDebug) {

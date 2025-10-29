@@ -1,0 +1,51 @@
+{
+  "name": "pr-auto-labeler",
+  "version": "1.0.0",
+  "description": "Intelligent PR auto-labeling workflow for GitHub Actions",
+  "main": "src/labeler.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --maxWorkers=2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/workflow-kit/pr-auto-labeler.git"
+  },
+  "keywords": [
+    "github-actions",
+    "pull-request",
+    "automation",
+    "labeling",
+    "workflow"
+  ],
+  "author": "ddjain",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js",
+      "!src/rules/RULE_TEMPLATE.js",
+      "!src/rules/index.js"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.js",
+      "**/*.test.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
+  }
+}
+

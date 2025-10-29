@@ -229,6 +229,42 @@ if (totalChanges > 500) {
 
 ## 🧪 Testing Your Rule
 
+### Automated Testing with Jest
+
+We use Jest for unit testing. Before submitting your rule, add tests for it:
+
+1. **Create a test file** in `__tests__/` directory (e.g., `__tests__/my-rule.test.js`)
+
+2. **Write test cases** covering:
+   ```javascript
+   const myRule = require('../src/rules/my-rule');
+
+   describe('My Rule', () => {
+     it('should detect condition X', () => {
+       const files = [{ filename: 'test.txt' }];
+       const labels = myRule({ files, pr: {}, enableDebug: false });
+       expect(labels).toContain('my-label');
+     });
+
+     it('should not detect condition Y', () => {
+       const files = [{ filename: 'other.txt' }];
+       const labels = myRule({ files, pr: {}, enableDebug: false });
+       expect(labels).not.toContain('my-label');
+     });
+   });
+   ```
+
+3. **Run tests locally**:
+   ```bash
+   npm install
+   npm test
+   ```
+
+4. **Check coverage**:
+   ```bash
+   npm run test:coverage
+   ```
+
 ### Manual Testing
 
 1. **Enable debug mode** to see rule execution:
@@ -246,6 +282,8 @@ if (totalChanges > 500) {
 
 ### Test Checklist
 
+- [ ] Unit tests written and passing
+- [ ] Test coverage >= 80%
 - [ ] Rule applies labels for positive cases
 - [ ] Rule doesn't apply labels for negative cases
 - [ ] Debug logging is clear and helpful

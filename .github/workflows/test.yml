@@ -1,0 +1,220 @@
+name: Run Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm run test:ci
+      
+      - name: Upload coverage reports
+        if: matrix.node-version == '20.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+      
+      - name: Comment PR with coverage
+        if: github.event_name == 'pull_request' && matrix.node-version == '20.x'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read coverage summary
+            let coverageSummary = '';
+            try {
+              const coveragePath = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
+              if (fs.existsSync(coveragePath)) {
+                const coverage = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
+                const total = coverage.total;
+                
+                coverageSummary = `
+## 📊 Test Coverage Report
+
+| Metric | Coverage |
+|--------|----------|
+| 🌿 Branches | ${total.branches.pct}% |
+| 🔢 Functions | ${total.functions.pct}% |
+| 📄 Lines | ${total.lines.pct}% |
+| 📝 Statements | ${total.statements.pct}% |
+
+Coverage details are available in the workflow artifacts.
+                `;
+              }
+            } catch (error) {
+              console.error('Error reading coverage:', error);
+              coverageSummary = '⚠️ Could not read coverage report';
+            }
+            
+            // Find existing coverage comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Test Coverage Report')
+            );
+            
+            const commentBody = `## ✅ Tests Passed\n\n${coverageSummary}\n\n*Automated comment by PR Auto-Labeler CI*`;
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: commentBody
+              });
+            }
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      
+      - name: Check JavaScript syntax
+        run: |
+          echo "Checking JavaScript files for syntax errors..."
+          # Use Node.js to check syntax
+          for file in $(find src -name "*.js" ! -path "*/node_modules/*"); do
+            echo "Checking $file"
+            node --check "$file" || exit 1
+          done
+          echo "✅ All JavaScript files have valid syntax"
+
+  validate-structure:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Validate rule files structure
+        run: |
+          echo "Validating rule files..."
+          
+          # Check that all rule files export a function
+          for file in src/rules/*.js; do
+            filename=$(basename "$file")
+            
+            # Skip template and index files
+            if [[ "$filename" == "RULE_TEMPLATE.js" ]] || [[ "$filename" == "index.js" ]]; then
+              continue
+            fi
+            
+            echo "Validating $filename..."
+            
+            # Check that file contains module.exports
+            if ! grep -q "module.exports" "$file"; then
+              echo "❌ Error: $filename does not export anything"
+              exit 1
+            fi
+            
+            # Check that file contains metadata
+            if ! grep -q "\.metadata" "$file"; then
+              echo "⚠️  Warning: $filename might be missing metadata"
+            fi
+          done
+          
+          echo "✅ All rule files are valid"
+      
+      - name: Check for required files
+        run: |
+          echo "Checking for required files..."
+          
+          required_files=(
+            "README.md"
+            "CONTRIBUTING.md"
+            "package.json"
+            ".github/workflows/pr-auto-labeler.yml"
+            ".github/workflows/test.yml"
+            "src/rules/frontend-ui.js"
+            "src/rules/RULE_TEMPLATE.js"
+          )
+          
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All required files present"
+
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [test, lint, validate-structure]
+    if: always()
+    
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "❌ Linting failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.validate-structure.result }}" != "success" ]; then
+            echo "❌ Structure validation failed"
+            exit 1
+          fi
+          
+          echo "✅ All checks passed!"
+

@@ -379,6 +379,65 @@ Apply Labels ← GitHub API
 Done ✅
 ```
 
+## 🧪 Testing
+
+### Running Tests
+
+This project uses Jest for testing. To run tests:
+
+```bash
+# Install dependencies
+npm install
+
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test Coverage
+
+We maintain high test coverage:
+- Minimum 80% coverage required
+- Automated tests run on every PR
+- Coverage reports available in CI artifacts
+
+### Writing Tests
+
+When contributing a new rule, include tests:
+
+```javascript
+// __tests__/my-rule.test.js
+const myRule = require('../src/rules/my-rule');
+
+describe('My Rule', () => {
+  it('should detect target files', () => {
+    const files = [{ filename: 'target.ext' }];
+    const labels = myRule({ files, pr: {}, enableDebug: false });
+    expect(labels).toContain('my-label');
+  });
+});
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed testing guidelines.
+
+### CI/CD
+
+Tests run automatically on:
+- Pull request creation and updates
+- Push to main branch
+- Manual workflow dispatch
+
+The test workflow includes:
+- ✅ Unit tests (Node 18 & 20)
+- 🔍 Syntax validation
+- 📋 Structure validation
+- 📊 Coverage reporting
+
 ## 📜 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
