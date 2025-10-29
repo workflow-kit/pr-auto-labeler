@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: '[]'
+      enabled_labels:
+        description: 'List of specific labels to apply (JSON array). If empty, all labels from enabled rules are applied. Example: ["ui-change", "env-change"]'
+        required: false
+        type: string
+        default: '[]'
       label_overrides:
         description: 'Custom label names to override defaults (JSON)'
         required: false
@@ -46,6 +51,7 @@ jobs:
         uses: actions/github-script@v7
         env:
           ENABLED_RULES: ${{ inputs.enabled_rules }}
+          ENABLED_LABELS: ${{ inputs.enabled_labels }}
           ENABLE_DEBUG: ${{ inputs.enable_debug }}
           LABEL_OVERRIDES: ${{ inputs.label_overrides }}
           SKIP_LABELS: ${{ inputs.skip_labels }}
@@ -69,6 +75,7 @@ jobs:
             // ==============================================================
             
             const enabledRules = JSON.parse(process.env.ENABLED_RULES || '[]');
+            const enabledLabels = JSON.parse(process.env.ENABLED_LABELS || '[]');
             const enableDebug = process.env.ENABLE_DEBUG === 'true';
             const labelOverrides = JSON.parse(process.env.LABEL_OVERRIDES || '{}');
             const skipLabels = JSON.parse(process.env.SKIP_LABELS || '[]');
@@ -88,6 +95,7 @@ jobs:
               console.log(`PR #${prNumber}: ${pr.title}`);
               console.log(`Files changed: ${files.length}`);
               console.log(`Enabled rules: ${enabledRules.length > 0 ? enabledRules.join(', ') : 'NONE (all rules disabled)'}`);
+              console.log(`Enabled labels: ${enabledLabels.length > 0 ? enabledLabels.join(', ') : 'ALL (from enabled rules)'}`);
             }
             
             // Check if any rules are enabled
@@ -215,11 +223,24 @@ jobs:
                 // Add labels from this rule
                 for (const label of ruleLabels) {
                   const finalLabel = labelOverrides[label] || label;
-                  if (!skipLabels.includes(finalLabel)) {
-                    labelsToApply.add(finalLabel);
-                  } else if (enableDebug) {
-                    console.log(`[Skipped] Label: ${finalLabel}`);
+                  
+                  // Check if label should be skipped
+                  if (skipLabels.includes(finalLabel)) {
+                    if (enableDebug) {
+                      console.log(`[Skipped via skip_labels] Label: ${finalLabel}`);
+                    }
+                    continue;
                   }
+                  
+                  // Check if label filtering is enabled
+                  if (enabledLabels.length > 0 && !enabledLabels.includes(label)) {
+                    if (enableDebug) {
+                      console.log(`[Filtered] Label not in enabled_labels: ${finalLabel}`);
+                    }
+                    continue;
+                  }
+                  
+                  labelsToApply.add(finalLabel);
                 }
               } catch (error) {
                 console.error(`❌ Error executing rule ${rule.metadata?.name}:`, error.message);

@@ -12,9 +12,11 @@
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Current Rules](#current-rules)
+- [All Labels Reference](#-all-labels-reference)
 - [Contributing](#contributing)
 - [Advanced Usage](#advanced-usage)
 - [Troubleshooting](#troubleshooting)
+- [Testing](#testing)
 - [License](#license)
 
 ## 🎯 Overview
@@ -86,6 +88,9 @@ jobs:
       # All rules are disabled by default
       enabled_rules: '["frontend-ui", "env-variables"]'
       
+      # Optional: Filter to specific labels only
+      enabled_labels: '["ui-change", "env-change", "potential-secret-leak"]'
+      
       # Optional: Enable debug logging (default: false)
       enable_debug: true
       
@@ -104,12 +109,25 @@ jobs:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `enabled_rules` | JSON Array | `[]` | **Rules to enable** (all disabled by default). See [Available Rules](#-current-rules) |
+| `enabled_labels` | JSON Array | `[]` | **Labels to apply** (if empty, all labels from enabled rules). See [All Labels](#-all-labels-reference) |
 | `label_overrides` | JSON Object | `{}` | Map default labels to custom names |
 | `large_pr_threshold` | Number | `500` | Lines changed to trigger `large-pr` label |
 | `enable_debug` | Boolean | `false` | Enable detailed debug logging |
 | `skip_labels` | JSON Array | `[]` | Labels to skip applying |
 
 ### Examples
+
+#### Enable Specific Labels Only
+
+Enable rules but only apply certain labels:
+
+```yaml
+with:
+  enabled_rules: '["frontend-ui", "env-variables"]'
+  # Only apply these specific labels:
+  enabled_labels: '["ui-change", "env-change", "potential-secret-leak"]'
+  # This will NOT apply: style-change, new-env-variable
+```
 
 #### Override Label Names
 
@@ -144,6 +162,7 @@ This will show detailed logs including:
 - Files analyzed
 - Rules executed
 - Labels detected
+- Labels filtered
 - Final labels applied
 
 ## 📚 Current Rules
@@ -219,6 +238,110 @@ More rules are being developed! See [requirement.md](requirement.md) for the ful
 - 📏 PR Size & Structure Analysis
 
 **Want to contribute a new rule?** See [Contributing](#contributing) below!
+
+---
+
+## 🏷️ All Labels Reference
+
+Complete guide to all available labels, their meanings, and when they're applied.
+
+### Frontend/UI Labels
+
+#### `ui-change`
+- **Color:** 🟢 Green (`0E8A16`)
+- **Description:** UI/Frontend changes detected
+- **Rule:** `frontend-ui`
+- **When Applied:** Any file with extensions: `.html`, `.css`, `.scss`, `.sass`, `.less`, `.jsx`, `.tsx`, `.vue`
+- **Use Case:** Quickly identify PRs that affect the user interface
+- **Enable:**
+  ```yaml
+  enabled_rules: '["frontend-ui"]'
+  enabled_labels: '["ui-change"]'  # optional: if you only want this label
+  ```
+
+#### `style-change`
+- **Color:** 🟣 Purple (`D4C5F9`)
+- **Description:** Style-only changes (CSS/SCSS)
+- **Rule:** `frontend-ui`
+- **When Applied:** Only style files (`.css`, `.scss`, `.sass`, `.less`) modified WITHOUT JavaScript/TypeScript files
+- **Use Case:** Identify purely cosmetic changes that don't affect logic
+- **Enable:**
+  ```yaml
+  enabled_rules: '["frontend-ui"]'
+  enabled_labels: '["style-change"]'  # optional
+  ```
+
+### Environment & Configuration Labels
+
+#### `env-change`
+- **Color:** 🟠 Orange (`FFA500`)
+- **Description:** Environment configuration files modified
+- **Rule:** `env-variables`
+- **When Applied:** Changes to `.env`, `.env.*`, `config.yml`, `config.yaml`, or `config.json` files
+- **Use Case:** Track configuration changes that might affect deployments
+- **Enable:**
+  ```yaml
+  enabled_rules: '["env-variables"]'
+  enabled_labels: '["env-change"]'  # optional
+  ```
+
+#### `new-env-variable`
+- **Color:** 🟡 Yellow (`FBCA04`)
+- **Description:** New environment variable introduced
+- **Rule:** `env-variables`
+- **When Applied:** Git diff shows new lines with `KEY=value` pattern in environment files
+- **Use Case:** Flag new configuration requirements that need documentation or deployment updates
+- **Enable:**
+  ```yaml
+  enabled_rules: '["env-variables"]'
+  enabled_labels: '["new-env-variable"]'  # optional
+  ```
+
+#### `potential-secret-leak`
+- **Color:** 🔴 Red (`D93F0B`)
+- **Description:** Potential secret or sensitive data detected
+- **Rule:** `env-variables`
+- **When Applied:** New environment variables contain keywords: `API_KEY`, `PASSWORD`, `SECRET`, `TOKEN`, `PRIVATE_KEY`, `CREDENTIAL` (case-insensitive)
+- **Use Case:** Security review required - potential credential exposure
+- **Why Important:** Helps prevent accidental commits of sensitive data
+- **Enable:**
+  ```yaml
+  enabled_rules: '["env-variables"]'
+  enabled_labels: '["potential-secret-leak"]'  # optional
+  ```
+
+### Label Configuration Strategies
+
+#### 🔒 Security-Focused
+Only enable critical security labels:
+```yaml
+enabled_rules: '["env-variables"]'
+enabled_labels: '["potential-secret-leak"]'
+```
+
+#### 🎨 Frontend Team
+Focus on UI changes:
+```yaml
+enabled_rules: '["frontend-ui"]'
+enabled_labels: '["ui-change", "style-change"]'
+```
+
+#### 📦 All Labels
+Enable everything:
+```yaml
+enabled_rules: '["frontend-ui", "env-variables"]'
+# enabled_labels not specified = all labels applied
+```
+
+#### 🎯 Custom Mix
+Pick exactly what you need:
+```yaml
+enabled_rules: '["frontend-ui", "env-variables"]'
+enabled_labels: '["ui-change", "env-change", "potential-secret-leak"]'
+# Excludes: style-change, new-env-variable
+```
+
+---
 
 ## 🤝 Contributing
 
