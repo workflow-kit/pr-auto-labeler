@@ -30,6 +30,7 @@ That's it! No need to modify any other files. The workflow automatically discove
 Create a new file in the appropriate category folder:
 - **Frontend rules:** `src/rules/frontend/your-rule-name.js`
 - **Environment rules:** `src/rules/environment/your-rule-name.js`
+- **Infrastructure rules:** `src/rules/infrastructure/your-rule-name.js`
 - **New category:** Create `src/rules/your-category/your-rule-name.js`
 
 Use the template as a starting point:
@@ -38,6 +39,8 @@ Use the template as a starting point:
 cp src/rules/RULE_TEMPLATE.js src/rules/frontend/your-rule-name.js
 # or
 cp src/rules/RULE_TEMPLATE.js src/rules/environment/your-rule-name.js
+# or
+cp src/rules/RULE_TEMPLATE.js src/rules/infrastructure/your-rule-name.js
 ```
 
 **Note:** Rules are organized by category, but you can place a rule anywhere in `src/rules/` - the workflow will find it automatically.
@@ -407,7 +410,7 @@ Here are some rule ideas you can implement:
 
 ### Medium Priority
 - [ ] CI/CD Changes (workflow files, Jenkinsfile)
-- [ ] Docker Changes (Dockerfile, docker-compose)
+- [x] Docker Changes (Dockerfile, docker-compose) - **Implemented:** `docker-change` rule
 - [ ] Documentation Changes (README, docs/)
 - [ ] Security Changes (auth, encryption, secrets)
 - [ ] Infrastructure Changes (terraform, ansible)
