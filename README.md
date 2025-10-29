@@ -86,7 +86,11 @@ jobs:
     with:
       # ✅ REQUIRED: Enable specific rules (JSON array)
       # All rules are disabled by default
-      enabled_rules: '["frontend-ui", "env-variables"]'
+      # Format: "category/rule-name" or just "rule-name"
+      enabled_rules: '["frontend/ui-change", "frontend/style-change", "environment/env-change"]'
+      
+      # Alternative: use short names (without category)
+      # enabled_rules: '["ui-change", "style-change", "env-change"]'
       
       # Optional: Filter to specific labels only
       enabled_labels: '["ui-change", "env-change", "potential-secret-leak"]'

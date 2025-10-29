@@ -1,7 +1,7 @@
 /**
- * Frontend/UI Detection Rule
+ * UI Change Detection Rule
  * 
- * Detects changes to frontend/UI files and applies appropriate labels.
+ * Detects changes to frontend/UI files (HTML, CSS, JS frameworks, etc.).
  * 
  * @param {Object} context - The rule execution context
  * @param {Array} context.files - Array of changed files in the PR
@@ -9,17 +9,13 @@
  * @param {boolean} context.enableDebug - Whether debug logging is enabled
  * @returns {Array<string>} - Array of labels to apply
  */
-module.exports = function frontendUIRule({ files, pr, enableDebug }) {
+module.exports = function uiChangeRule({ files, pr, enableDebug }) {
   const labels = [];
   
-  // Define file extensions
+  // Define UI file extensions
   const uiExtensions = ['.html', '.css', '.scss', '.sass', '.less', '.jsx', '.tsx', '.vue'];
-  const styleExtensions = ['.css', '.scss', '.sass', '.less'];
-  const jsExtensions = ['.js', '.jsx', '.ts', '.tsx', '.vue'];
   
   let hasUIChanges = false;
-  let hasStyleChanges = false;
-  let hasJSChanges = false;
   
   // Analyze files
   for (const file of files) {
@@ -35,33 +31,20 @@ module.exports = function frontendUIRule({ files, pr, enableDebug }) {
     if (uiExtensions.includes(ext)) {
       hasUIChanges = true;
       
-      if (styleExtensions.includes(ext)) {
-        hasStyleChanges = true;
+      if (enableDebug) {
+        console.log(`[UI Change Rule] UI file detected: ${filename}`);
       }
-    }
-    
-    // Check for JS/TS changes (even if not in UI extensions)
-    if (jsExtensions.includes(ext)) {
-      hasJSChanges = true;
-    }
-    
-    if (enableDebug) {
-      console.log(`[Frontend/UI Rule] File: ${filename}, Extension: ${ext}, Is UI: ${uiExtensions.includes(ext)}`);
+      break; // Found at least one UI file
     }
   }
   
-  // Apply labels based on detection
+  // Apply label if UI changes detected
   if (hasUIChanges) {
     labels.push('ui-change');
-    
-    // If only style files changed (no JS/TS)
-    if (hasStyleChanges && !hasJSChanges) {
-      labels.push('style-change');
-    }
   }
   
   if (enableDebug) {
-    console.log(`[Frontend/UI Rule] Labels to apply: ${labels.join(', ') || 'none'}`);
+    console.log(`[UI Change Rule] Labels to apply: ${labels.join(', ') || 'none'}`);
   }
   
   return labels;
@@ -69,21 +52,17 @@ module.exports = function frontendUIRule({ files, pr, enableDebug }) {
 
 // Rule metadata
 module.exports.metadata = {
-  name: 'Frontend/UI Detection',
+  name: 'UI Change Detection',
   description: 'Detects changes to frontend and UI files',
   labels: [
     {
       name: 'ui-change',
       color: '0E8A16',
       description: 'UI/Frontend changes detected'
-    },
-    {
-      name: 'style-change',
-      color: 'D4C5F9',
-      description: 'Style-only changes (CSS/SCSS)'
     }
   ],
   author: 'pr-auto-labeler',
-  version: '1.0.0'
+  version: '1.0.0',
+  category: 'frontend'
 };
 
