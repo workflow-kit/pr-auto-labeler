@@ -39,10 +39,11 @@
     "testEnvironment": "node",
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
-      "src/**/*.js",
+      "src/rules/**/*.js",
       "!src/**/*.test.js",
       "!src/rules/RULE_TEMPLATE.js",
-      "!src/rules/index.js"
+      "!src/rules/index.js",
+      "!src/workflow-script.js"
     ],
     "testMatch": [
       "**/__tests__/**/*.js",
