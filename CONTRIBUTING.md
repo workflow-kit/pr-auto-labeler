@@ -291,6 +291,80 @@ We use Jest for unit testing. Before submitting your rule, add tests for it:
 - [ ] Performance is acceptable for large PRs
 - [ ] Rule doesn't conflict with existing rules
 
+## ⚙️ Understanding Label Configuration
+
+When users adopt your rule, they have full control over which labels to apply. Here's how:
+
+### How Users Enable Your Rule
+
+Users must explicitly enable your rule to use it:
+
+```yaml
+# Enable the rule
+enabled_rules: '["your-rule-name"]'
+```
+
+### Granular Label Control
+
+Users can also filter specific labels from your rule:
+
+```yaml
+# Enable the rule
+enabled_rules: '["your-rule-name"]'
+
+# But only apply specific labels
+enabled_labels: '["important-label", "critical-label"]'
+# This will filter out other labels your rule might return
+```
+
+### Example Scenario
+
+If your rule returns 3 labels: `db-change`, `migration`, `risky-migration`
+
+Users can choose:
+1. **All labels** (default):
+   ```yaml
+   enabled_rules: '["database"]'
+   # All 3 labels applied
+   ```
+
+2. **Only important labels**:
+   ```yaml
+   enabled_rules: '["database"]'
+   enabled_labels: '["db-change", "risky-migration"]'
+   # Only 2 labels applied, 'migration' filtered out
+   ```
+
+3. **Skip certain labels**:
+   ```yaml
+   enabled_rules: '["database"]'
+   skip_labels: '["migration"]'
+   # 2 labels applied, 'migration' skipped
+   ```
+
+### Best Practices for Rule Authors
+
+1. **Provide Multiple Labels**: Let users have granular control
+   - ✅ Good: `ui-change`, `style-change` (2 labels, different severity)
+   - ❌ Less flexible: Only `ui-change` (1 label, no options)
+
+2. **Use Descriptive Names**: Help users understand what each label means
+   - ✅ Good: `potential-secret-leak`, `env-change`
+   - ❌ Unclear: `flag`, `warning`
+
+3. **Document Each Label**: In your metadata, explain when each label applies
+   ```javascript
+   labels: [
+     { name: 'db-change', color: 'FBCA04', description: 'Database files modified' },
+     { name: 'risky-migration', color: 'D93F0B', description: 'Potentially destructive migration (DROP/ALTER)' }
+   ]
+   ```
+
+4. **Think About Use Cases**: Different teams may want different labels
+   - Security teams: Only `potential-secret-leak`
+   - Frontend teams: `ui-change` and `style-change`
+   - Full-stack teams: All labels
+
 ## 📝 Pull Request Guidelines
 
 ### PR Title Format
