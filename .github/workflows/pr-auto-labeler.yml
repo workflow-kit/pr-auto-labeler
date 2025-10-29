@@ -46,90 +46,166 @@ jobs:
           LARGE_PR_THRESHOLD: ${{ inputs.large_pr_threshold }}
         with:
           script: |
-            // Fetch PR files
+            // ==============================================================
+            // PR Auto-Labeler - Dynamic Rule Loading System
+            // ==============================================================
+            // This workflow automatically discovers and loads all rules from
+            // the src/rules/ directory. Contributors only need to add a new
+            // rule file - no need to modify this workflow!
+            //
+            // To add a new rule:
+            // 1. Create a new .js file in src/rules/ (e.g., my-rule.js)
+            // 2. Follow the rule template format
+            // 3. Submit a PR with just that file!
+            //
+            // That's it! The workflow will automatically discover and run it.
+            // ==============================================================
+            
+            const enableDebug = process.env.ENABLE_DEBUG === 'true';
+            const labelOverrides = JSON.parse(process.env.LABEL_OVERRIDES || '{}');
+            const skipLabels = JSON.parse(process.env.SKIP_LABELS || '[]');
+            
+            // Fetch PR information
             const { data: files } = await github.rest.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number,
             });
             
-            const prNumber = context.payload.pull_request.number;
-            const enableDebug = process.env.ENABLE_DEBUG === 'true';
-            const labelOverrides = JSON.parse(process.env.LABEL_OVERRIDES || '{}');
-            const skipLabels = JSON.parse(process.env.SKIP_LABELS || '[]');
+            const pr = context.payload.pull_request;
+            const prNumber = pr.number;
             
-            // Debug logging
             if (enableDebug) {
-              console.log('Files in PR:', files.map(f => f.filename));
-              console.log('Label overrides:', labelOverrides);
-              console.log('Skip labels:', skipLabels);
+              console.log('=== PR Auto-Labeler Starting ===');
+              console.log(`PR #${prNumber}: ${pr.title}`);
+              console.log(`Files changed: ${files.length}`);
             }
             
-            // Labels to apply
-            const labelsToApply = new Set();
+            // ==============================================================
+            // Dynamic Rule Discovery and Loading
+            // ==============================================================
             
-            // Helper function to get label name (with override support)
-            function getLabel(defaultLabel) {
-              return labelOverrides[defaultLabel] || defaultLabel;
-            }
+            // Get the repository where the workflow is defined (pr-auto-labeler repo)
+            const workflowRepo = {
+              owner: 'workflow-kit',
+              repo: 'pr-auto-labeler'
+            };
             
-            // Helper function to check if label should be skipped
-            function shouldSkip(label) {
-              return skipLabels.includes(label);
-            }
+            let rules = [];
             
-            // Frontend/UI detection
-            const uiExtensions = ['.html', '.css', '.scss', '.sass', '.less', '.jsx', '.tsx', '.vue'];
-            const styleExtensions = ['.css', '.scss', '.sass', '.less'];
-            const jsExtensions = ['.js', '.jsx', '.ts', '.tsx', '.vue'];
-            
-            let hasUIChanges = false;
-            let hasStyleChanges = false;
-            let hasJSChanges = false;
-            
-            for (const file of files) {
-              const filename = file.filename.toLowerCase();
-              const ext = filename.substring(filename.lastIndexOf('.'));
-              
-              // Check for UI changes
-              if (uiExtensions.includes(ext)) {
-                hasUIChanges = true;
-                
-                if (styleExtensions.includes(ext)) {
-                  hasStyleChanges = true;
-                }
-                
-                if (jsExtensions.includes(ext)) {
-                  hasJSChanges = true;
-                }
-              }
+            try {
+              // List all files in src/rules/ directory
+              const { data: ruleFiles } = await github.rest.repos.getContent({
+                owner: workflowRepo.owner,
+                repo: workflowRepo.repo,
+                path: 'src/rules',
+                ref: 'main'
+              });
               
               if (enableDebug) {
-                console.log(`File: ${filename}, Extension: ${ext}, UI: ${uiExtensions.includes(ext)}`);
-              }
-            }
-            
-            // Apply labels based on detection
-            if (hasUIChanges) {
-              const uiLabel = getLabel('ui-change');
-              if (!shouldSkip(uiLabel)) {
-                labelsToApply.add(uiLabel);
+                console.log(`\n🔍 Discovering rules in src/rules/...`);
               }
               
-              // If only style files changed (no JS/TS)
-              if (hasStyleChanges && !hasJSChanges) {
-                const styleLabel = getLabel('style-change');
-                if (!shouldSkip(styleLabel)) {
-                  labelsToApply.add(styleLabel);
+              // Filter for .js files (exclude template and index)
+              const jsFiles = ruleFiles.filter(file => 
+                file.name.endsWith('.js') && 
+                file.name !== 'index.js' &&
+                !file.name.includes('TEMPLATE')
+              );
+              
+              if (enableDebug) {
+                console.log(`Found ${jsFiles.length} rule files: ${jsFiles.map(f => f.name).join(', ')}`);
+              }
+              
+              // Load each rule file
+              for (const file of jsFiles) {
+                try {
+                  // Fetch the rule file content
+                  const { data: fileData } = await github.rest.repos.getContent({
+                    owner: workflowRepo.owner,
+                    repo: workflowRepo.repo,
+                    path: file.path,
+                    ref: 'main'
+                  });
+                  
+                  // Decode the content
+                  const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+                  
+                  // Create a module-like environment and execute the rule
+                  const moduleExports = {};
+                  const moduleFunction = new Function('exports', 'module', content + '\nreturn module.exports;');
+                  const ruleFunction = moduleFunction(moduleExports, { exports: moduleExports });
+                  
+                  if (typeof ruleFunction === 'function') {
+                    rules.push(ruleFunction);
+                    if (enableDebug) {
+                      console.log(`✅ Loaded rule: ${ruleFunction.metadata?.name || file.name}`);
+                    }
+                  }
+                } catch (error) {
+                  console.error(`❌ Error loading rule ${file.name}:`, error.message);
                 }
+              }
+              
+            } catch (error) {
+              console.error('❌ Error discovering rules:', error.message);
+              console.log('ℹ️  Falling back to no rules. Make sure src/rules/ directory exists.');
+            }
+            
+            if (rules.length === 0) {
+              console.log('⚠️  No rules loaded. No labels will be applied.');
+              return;
+            }
+            
+            if (enableDebug) {
+              console.log(`\n📋 Active rules: ${rules.length}`);
+            }
+            
+            // ==============================================================
+            // Rule Execution Engine
+            // ==============================================================
+            
+            const labelsToApply = new Set();
+            const labelMetadata = new Map();
+            
+            // Execute all rules
+            for (const rule of rules) {
+              if (enableDebug) {
+                console.log(`\n--- Running Rule: ${rule.metadata?.name || 'Unknown'} ---`);
+              }
+              
+              try {
+                const ruleLabels = rule({ files, pr, enableDebug });
+                
+                // Store metadata for label creation
+                if (rule.metadata?.labels) {
+                  for (const labelDef of rule.metadata.labels) {
+                    labelMetadata.set(labelDef.name, labelDef);
+                  }
+                }
+                
+                // Add labels from this rule
+                for (const label of ruleLabels) {
+                  const finalLabel = labelOverrides[label] || label;
+                  if (!skipLabels.includes(finalLabel)) {
+                    labelsToApply.add(finalLabel);
+                  } else if (enableDebug) {
+                    console.log(`[Skipped] Label: ${finalLabel}`);
+                  }
+                }
+              } catch (error) {
+                console.error(`❌ Error executing rule ${rule.metadata?.name}:`, error.message);
               }
             }
             
             if (enableDebug) {
-              console.log('Labels to apply:', Array.from(labelsToApply));
+              console.log(`\n=== Final Labels: ${Array.from(labelsToApply).join(', ') || 'none'} ===`);
             }
             
-            // Apply labels to PR
+            // ==============================================================
+            // Apply Labels to PR
+            // ==============================================================
+            
             if (labelsToApply.size > 0) {
               try {
                 await github.rest.issues.addLabels({
@@ -140,23 +216,24 @@ jobs:
                 });
                 console.log(`✅ Successfully applied labels: ${Array.from(labelsToApply).join(', ')}`);
               } catch (error) {
-                // Labels might not exist, try to create them
+                console.log('⚠️  Some labels may not exist. Creating them...');
                 for (const label of labelsToApply) {
-                  try {
-                    await github.rest.issues.createLabel({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      name: label,
-                      color: label === 'ui-change' ? '0E8A16' : 'D4C5F9',
-                      description: label === 'ui-change' ? 'UI/Frontend changes detected' : 'Style-only changes'
-                    });
-                    console.log(`✅ Created label: ${label}`);
-                  } catch (createError) {
-                    console.log(`Label ${label} might already exist or couldn't be created`);
+                  const metadata = labelMetadata.get(label);
+                  if (metadata) {
+                    try {
+                      await github.rest.issues.createLabel({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        name: metadata.name,
+                        color: metadata.color,
+                        description: metadata.description
+                      });
+                      console.log(`✅ Created label: ${label}`);
+                    } catch (createError) {
+                      // Label might already exist
+                    }
                   }
                 }
-                
-                // Try applying labels again
                 await github.rest.issues.addLabels({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
