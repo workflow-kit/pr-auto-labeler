@@ -4,17 +4,12 @@ on:
   workflow_call:
     inputs:
       enabled_rules:
-        description: 'List of rule names to enable (JSON array). All rules disabled by default. Example: ["frontend-ui", "env-variables"]'
-        required: false
-        type: string
-        default: '[]'
-      enabled_labels:
-        description: 'List of specific labels to apply (JSON array). If empty, all labels from enabled rules are applied. Example: ["ui-change", "env-change"]'
+        description: 'List of rule names to enable (JSON array). All rules disabled by default. Example: ["ui-change", "env-change"]'
         required: false
         type: string
         default: '[]'
       label_overrides:
-        description: 'Custom label names to override defaults (JSON)'
+        description: 'Custom label names to override defaults (JSON object). Example: {"ui-change":"frontend"}'
         required: false
         type: string
         default: '{}'
@@ -28,11 +23,6 @@ on:
         required: false
         type: boolean
         default: false
-      skip_labels:
-        description: 'Labels to skip applying (JSON array)'
-        required: false
-        type: string
-        default: '[]'
 
 permissions:
   contents: read
@@ -51,10 +41,8 @@ jobs:
         uses: actions/github-script@v7
         env:
           ENABLED_RULES: ${{ inputs.enabled_rules }}
-          ENABLED_LABELS: ${{ inputs.enabled_labels }}
           ENABLE_DEBUG: ${{ inputs.enable_debug }}
           LABEL_OVERRIDES: ${{ inputs.label_overrides }}
-          SKIP_LABELS: ${{ inputs.skip_labels }}
           LARGE_PR_THRESHOLD: ${{ inputs.large_pr_threshold }}
         with:
           script: |
