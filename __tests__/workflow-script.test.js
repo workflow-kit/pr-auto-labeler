@@ -202,55 +202,7 @@ describe('Workflow Script', () => {
     });
   });
 
-  describe('Label Filtering', () => {
-    it('should apply enabled_labels filter', async () => {
-      process.env.ENABLED_RULES = '["frontend-ui"]';
-      process.env.ENABLED_LABELS = '["ui-change"]'; // Only ui-change, not style-change
-      
-      mockGitHub.rest.repos.getContent
-        .mockResolvedValueOnce({
-          data: [{ name: 'frontend-ui.js', path: 'src/rules/frontend-ui.js' }]
-        })
-        .mockResolvedValueOnce({
-          data: {
-            content: Buffer.from('module.exports = function() { return ["ui-change", "style-change"]; }; module.exports.metadata = {labels: [{name: "ui-change", color: "0E8A16"}, {name: "style-change", color: "D4C5F9"}]};').toString('base64')
-          }
-        });
-
-      await workflowScript({ github: mockGitHub, context: mockContext, core: mockCore });
-
-      expect(mockGitHub.rest.issues.addLabels).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        issue_number: 123,
-        labels: ['ui-change'] // Only ui-change, style-change filtered out
-      });
-    });
-
-    it('should apply skip_labels filter', async () => {
-      process.env.ENABLED_RULES = '["frontend-ui"]';
-      process.env.SKIP_LABELS = '["style-change"]';
-      
-      mockGitHub.rest.repos.getContent
-        .mockResolvedValueOnce({
-          data: [{ name: 'frontend-ui.js', path: 'src/rules/frontend-ui.js' }]
-        })
-        .mockResolvedValueOnce({
-          data: {
-            content: Buffer.from('module.exports = function() { return ["ui-change", "style-change"]; }; module.exports.metadata = {labels: [{name: "ui-change", color: "0E8A16"}, {name: "style-change", color: "D4C5F9"}]};').toString('base64')
-          }
-        });
-
-      await workflowScript({ github: mockGitHub, context: mockContext, core: mockCore });
-
-      expect(mockGitHub.rest.issues.addLabels).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        issue_number: 123,
-        labels: ['ui-change']
-      });
-    });
-
+  describe('Label Overrides', () => {
     it('should apply label_overrides', async () => {
       process.env.ENABLED_RULES = '["frontend-ui"]';
       process.env.LABEL_OVERRIDES = '{"ui-change":"frontend-change"}';

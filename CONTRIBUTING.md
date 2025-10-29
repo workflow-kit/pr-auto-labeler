@@ -9,12 +9,12 @@ Thank you for your interest in contributing to PR Auto-Labeler! This document pr
 Contributing is now incredibly simple:
 
 1. **Fork the repository** on GitHub
-2. **Create a new file** in `src/rules/` (e.g., `my-awesome-rule.js`)
+2. **Create a new file** in `src/rules/` or appropriate category folder (e.g., `src/rules/frontend/my-rule.js` or `src/rules/environment/my-rule.js`)
 3. **Copy the template** from `src/rules/RULE_TEMPLATE.js`
 4. **Implement your logic** - just the detection code!
 5. **Submit a PR** with ONLY your new file
 
-That's it! No need to modify any other files. The workflow automatically discovers and loads your rule.
+That's it! No need to modify any other files. The workflow automatically discovers and loads your rule from any subdirectory.
 
 ### Detailed Steps
 
@@ -27,11 +27,20 @@ That's it! No need to modify any other files. The workflow automatically discove
 
 ### Step 1: Create Your Rule File
 
-Create a new file in `src/rules/` directory. Use the template as a starting point:
+Create a new file in the appropriate category folder:
+- **Frontend rules:** `src/rules/frontend/your-rule-name.js`
+- **Environment rules:** `src/rules/environment/your-rule-name.js`
+- **New category:** Create `src/rules/your-category/your-rule-name.js`
+
+Use the template as a starting point:
 
 ```bash
-cp src/rules/RULE_TEMPLATE.js src/rules/your-rule-name.js
+cp src/rules/RULE_TEMPLATE.js src/rules/frontend/your-rule-name.js
+# or
+cp src/rules/RULE_TEMPLATE.js src/rules/environment/your-rule-name.js
 ```
+
+**Note:** Rules are organized by category, but you can place a rule anywhere in `src/rules/` - the workflow will find it automatically.
 
 ### Step 2: Implement Your Rule Logic
 
@@ -86,11 +95,12 @@ Before submitting, test your rule works correctly:
 That's it! You only need to submit your new rule file. The workflow automatically discovers and loads all rules from the `src/rules/` directory.
 
 **What to include in your PR:**
-- ✅ Your new rule file in `src/rules/`
+- ✅ Your new rule file in `src/rules/` (or category subfolder)
+- ✅ Test file in `__tests__/` (matching the folder structure)
 - ❌ No changes to `.github/workflows/pr-auto-labeler.yml` needed!
 - ❌ No changes to `src/rules/index.js` needed!
 
-The system is fully automatic - just add your rule file and go!
+The system is fully automatic - just add your rule file and tests!
 
 ## 📋 Rule Development Guidelines
 
@@ -233,7 +243,10 @@ if (totalChanges > 500) {
 
 We use Jest for unit testing. Before submitting your rule, add tests for it:
 
-1. **Create a test file** in `__tests__/` directory (e.g., `__tests__/my-rule.test.js`)
+1. **Create a test file** matching your rule's folder structure:
+   - Rule in `src/rules/frontend/my-rule.js` → Test in `__tests__/frontend/my-rule.test.js`
+   - Rule in `src/rules/environment/my-rule.js` → Test in `__tests__/environment/my-rule.test.js`
+   - Rule in `src/rules/my-rule.js` → Test in `__tests__/my-rule.test.js`
 
 2. **Write test cases** covering:
    ```javascript
@@ -293,7 +306,7 @@ We use Jest for unit testing. Before submitting your rule, add tests for it:
 
 ## ⚙️ Understanding Label Configuration
 
-When users adopt your rule, they have full control over which labels to apply. Here's how:
+When users adopt your rule, they enable it and all labels from that rule are applied automatically.
 
 ### How Users Enable Your Rule
 
@@ -304,49 +317,25 @@ Users must explicitly enable your rule to use it:
 enabled_rules: '["your-rule-name"]'
 ```
 
-### Granular Label Control
-
-Users can also filter specific labels from your rule:
-
-```yaml
-# Enable the rule
-enabled_rules: '["your-rule-name"]'
-
-# But only apply specific labels
-enabled_labels: '["important-label", "critical-label"]'
-# This will filter out other labels your rule might return
-```
+**Important:** All rules are disabled by default. When a user enables your rule, all labels returned by your rule will be applied to matching PRs.
 
 ### Example Scenario
 
 If your rule returns 3 labels: `db-change`, `migration`, `risky-migration`
 
-Users can choose:
-1. **All labels** (default):
-   ```yaml
-   enabled_rules: '["database"]'
-   # All 3 labels applied
-   ```
+When enabled:
+```yaml
+enabled_rules: '["database"]'
+# All 3 labels from the rule will be applied automatically
+```
 
-2. **Only important labels**:
-   ```yaml
-   enabled_rules: '["database"]'
-   enabled_labels: '["db-change", "risky-migration"]'
-   # Only 2 labels applied, 'migration' filtered out
-   ```
-
-3. **Skip certain labels**:
-   ```yaml
-   enabled_rules: '["database"]'
-   skip_labels: '["migration"]'
-   # 2 labels applied, 'migration' skipped
-   ```
+**Note:** If users want fewer labels, they should enable fewer rules or create custom rules that return only the labels they need.
 
 ### Best Practices for Rule Authors
 
-1. **Provide Multiple Labels**: Let users have granular control
-   - ✅ Good: `ui-change`, `style-change` (2 labels, different severity)
-   - ❌ Less flexible: Only `ui-change` (1 label, no options)
+1. **Provide Multiple Labels**: Different labels for different scenarios
+   - ✅ Good: `ui-change`, `style-change` (2 labels, different scenarios)
+   - ✅ Also good: Single label rules are fine if they serve a specific purpose
 
 2. **Use Descriptive Names**: Help users understand what each label means
    - ✅ Good: `potential-secret-leak`, `env-change`

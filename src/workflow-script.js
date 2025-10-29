@@ -23,10 +23,8 @@ module.exports = async ({ github, context, core }) => {
   // ==============================================================
   
   const enabledRules = JSON.parse(process.env.ENABLED_RULES || '[]');
-  const enabledLabels = JSON.parse(process.env.ENABLED_LABELS || '[]');
   const enableDebug = process.env.ENABLE_DEBUG === 'true';
   const labelOverrides = JSON.parse(process.env.LABEL_OVERRIDES || '{}');
-  const skipLabels = JSON.parse(process.env.SKIP_LABELS || '[]');
   
   // Fetch PR information
   const { data: files } = await github.rest.pulls.listFiles({
@@ -43,7 +41,6 @@ module.exports = async ({ github, context, core }) => {
     console.log(`PR #${prNumber}: ${pr.title}`);
     console.log(`Files changed: ${files.length}`);
     console.log(`Enabled rules: ${enabledRules.length > 0 ? enabledRules.join(', ') : 'NONE (all rules disabled)'}`);
-    console.log(`Enabled labels: ${enabledLabels.length > 0 ? enabledLabels.join(', ') : 'ALL (from enabled rules)'}`);
   }
   
   // Check if any rules are enabled
@@ -202,23 +199,6 @@ module.exports = async ({ github, context, core }) => {
       // Add labels from this rule
       for (const label of ruleLabels) {
         const finalLabel = labelOverrides[label] || label;
-        
-        // Check if label should be skipped
-        if (skipLabels.includes(finalLabel)) {
-          if (enableDebug) {
-            console.log(`[Skipped via skip_labels] Label: ${finalLabel}`);
-          }
-          continue;
-        }
-        
-        // Check if label filtering is enabled
-        if (enabledLabels.length > 0 && !enabledLabels.includes(label)) {
-          if (enableDebug) {
-            console.log(`[Filtered] Label not in enabled_labels: ${finalLabel}`);
-          }
-          continue;
-        }
-        
         labelsToApply.add(finalLabel);
       }
     } catch (error) {
