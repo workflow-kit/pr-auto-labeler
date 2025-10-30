@@ -37,46 +37,4 @@ module.exports.metadata = {
   category: 'meta'
 };
 
-/**
- * Work In Progress (WIP) Detection Rule
- *
- * Labels PRs marked as draft or whose title/body indicate WIP.
- */
-module.exports = function workInProgressRule({ files, pr, enableDebug }) {
-  const labels = [];
-
-  const title = (pr.title || '').toLowerCase();
-  const body = (pr.body || '').toLowerCase();
-  const isDraft = Boolean(pr.draft);
-
-  const hasWipKeyword =
-    title.includes('wip') ||
-    title.includes('[wip]') ||
-    title.includes('work in progress') ||
-    body.includes('wip') ||
-    body.includes('work in progress');
-
-  if (isDraft || hasWipKeyword) {
-    labels.push('work-in-progress');
-  }
-
-  if (enableDebug) {
-    console.log(`[WIP Rule] draft=${isDraft}, hasWipKeyword=${hasWipKeyword}`);
-    console.log(`[WIP Rule] Labels to apply: ${labels.join(', ') || 'none'}`);
-  }
-
-  return labels;
-};
-
-module.exports.metadata = {
-  name: 'Work In Progress Detection',
-  description: 'Labels PRs that are draft or marked as WIP',
-  labels: [
-    { name: 'work-in-progress', color: '7F8C8D', description: 'PR is work in progress' }
-  ],
-  author: 'pr-auto-labeler',
-  version: '1.0.0',
-  category: 'meta'
-};
-
 
