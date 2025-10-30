@@ -6,6 +6,12 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Coverage](https://img.shields.io/badge/coverage-80%25+-brightgreen)](https://github.com/workflow-kit/pr-auto-labeler)
 
+## 📸 See It In Action
+
+![PR Auto-Labeler Preview](.github/images/pr-labels-preview.png)
+
+*Labels are automatically applied to your pull requests based on the changes made - no manual effort required!*
+
 ---
 
 ## 🚀 Quick Setup
