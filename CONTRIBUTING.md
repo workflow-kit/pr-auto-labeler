@@ -243,6 +243,142 @@ if (totalChanges > 500) {
 
 ## 🧪 Testing Your Rule
 
+### How to Test Your Changes
+
+There are two main approaches to test your rule changes in a real GitHub environment before merging:
+
+#### Option 1: Testing via Branch (Same Repository)
+
+If you have write access to the repository, you can test directly using a feature branch:
+
+**Step 1:** Push your changes to a feature branch
+```bash
+git checkout -b feat/my-new-rule
+git add src/rules/my-new-rule.js __tests__/my-new-rule.test.js
+git commit -m "feat: add my new rule"
+git push origin feat/my-new-rule
+```
+
+**Step 2:** Update the workflow in a test repository to use your branch
+```yaml
+# In your test repository's .github/workflows/pr-labeler.yml
+jobs:
+  label:
+    uses: workflow-kit/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@feat/my-new-rule  # Use your branch
+    with:
+      enabled_rules: '["my-new-rule"]'
+      enable_debug: true  # Enable debug mode to see logs
+```
+
+**Step 3:** Create a test PR in your test repository
+- Make changes that should trigger your rule
+- Check the GitHub Actions logs to verify the rule works
+- Verify the correct labels are applied
+
+**Step 4:** Iterate if needed
+```bash
+# Make changes to your rule
+git add -A
+git commit -m "fix: improve rule detection"
+git push origin feat/my-new-rule
+# Create another test PR to verify the changes
+```
+
+---
+
+#### Option 2: Testing via Fork
+
+If you're contributing from a fork (most common for external contributors):
+
+**Step 1:** Fork the repository and clone your fork
+```bash
+git clone https://github.com/YOUR-USERNAME/pr-auto-labeler.git
+cd pr-auto-labeler
+```
+
+**Step 2:** Create your feature branch and make changes
+```bash
+git checkout -b feat/my-new-rule
+# Add your rule file
+# Add tests
+git add -A
+git commit -m "feat: add my new rule"
+git push origin feat/my-new-rule
+```
+
+**Step 3:** Set up a test repository to use your fork
+In your test repository, create `.github/workflows/pr-labeler.yml`:
+
+```yaml
+name: Test My New Rule
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    # Point to YOUR fork and branch
+    uses: YOUR-USERNAME/pr-auto-labeler/.github/workflows/pr-auto-labeler.yml@feat/my-new-rule
+    with:
+      enabled_rules: '["my-new-rule"]'
+      enable_debug: true  # Important: see what's happening
+```
+
+**Step 4:** Create test PRs in your test repository
+- Make changes that should trigger your rule
+- Check the Actions tab to see workflow execution
+- Verify labels are applied correctly
+
+**Step 5:** Iterate and refine
+```bash
+# Make improvements to your rule
+git add -A
+git commit -m "fix: handle edge case"
+git push origin feat/my-new-rule
+# The next test PR will use the updated code
+```
+
+**Step 6:** Submit your PR to the main repository
+Once satisfied with testing:
+```bash
+# Create a PR from your fork to workflow-kit/pr-auto-labeler
+# GitHub will show you the "Contribute" button
+```
+
+---
+
+### Testing Tips
+
+**✅ Enable Debug Mode**: Always use `enable_debug: true` when testing
+```yaml
+with:
+  enabled_rules: '["my-rule"]'
+  enable_debug: true  # Shows detailed execution logs
+```
+
+**✅ Test Multiple Scenarios**: Create test PRs with different file combinations
+- Positive case: Files that should trigger the rule
+- Negative case: Files that should NOT trigger the rule  
+- Edge cases: Empty files, special characters, large files
+
+**✅ Check GitHub Actions Logs**: 
+1. Go to the "Actions" tab in your test repository
+2. Click on the latest workflow run
+3. Expand the logs to see debug output
+4. Look for your rule's debug messages
+
+**✅ Verify Labels**: 
+- Check the PR's label section
+- Ensure only expected labels are applied
+- Test label overrides if using custom names
+
+---
+
 ### Automated Testing with Jest
 
 We use Jest for unit testing. Before submitting your rule, add tests for it:
