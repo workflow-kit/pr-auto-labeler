@@ -7,11 +7,31 @@ describe('Test Only Change Rule', () => {
     expect(labels).toContain('test-only-change');
   });
 
+  it('labels when test/ directory files change', () => {
+    const files = [{ filename: 'test/unit.js' }];
+    const labels = rule({ files, pr: {}, enableDebug: false });
+    expect(labels).toContain('test-only-change');
+  });
+
   it('does not label when source files also change', () => {
     const files = [{ filename: '__tests__/a.test.js' }, { filename: 'src/app.ts' }];
     const labels = rule({ files, pr: {}, enableDebug: false });
     expect(labels).toEqual([]);
   });
+
+  it('does not label when only source files change', () => {
+    const files = [{ filename: 'src/app.js' }];
+    const labels = rule({ files, pr: {}, enableDebug: false });
+    expect(labels).toEqual([]);
+  });
+
+  it('handles empty files array', () => {
+    const labels = rule({ files: [], pr: {}, enableDebug: false });
+    expect(labels).toEqual([]);
+  });
+
+  it('handles debug mode', () => {
+    const files = [{ filename: '__tests__/test.js' }];
+    expect(() => rule({ files, pr: {}, enableDebug: true })).not.toThrow();
+  });
 });
-
-
