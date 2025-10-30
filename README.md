@@ -6,6 +6,16 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Coverage](https://img.shields.io/badge/coverage-80%25+-brightgreen)](https://github.com/workflow-kit/pr-auto-labeler)
 
+<!-- Usage & Analytics Badges -->
+[![GitHub stars](https://img.shields.io/github/stars/workflow-kit/pr-auto-labeler?style=social)](https://github.com/workflow-kit/pr-auto-labeler/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/workflow-kit/pr-auto-labeler?style=social)](https://github.com/workflow-kit/pr-auto-labeler/network/members)
+[![GitHub watchers](https://img.shields.io/github/watchers/workflow-kit/pr-auto-labeler?style=social)](https://github.com/workflow-kit/pr-auto-labeler/watchers)
+[![GitHub issues](https://img.shields.io/github/issues/workflow-kit/pr-auto-labeler)](https://github.com/workflow-kit/pr-auto-labeler/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/workflow-kit/pr-auto-labeler)](https://github.com/workflow-kit/pr-auto-labeler/pulls)
+[![Used by (public repos)](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Fworkflow-kit%2Fpr-auto-labeler%2Fnetwork%2Fdependents&query=%24.length&label=used%20by&logo=github)](https://github.com/workflow-kit/pr-auto-labeler/network/dependents)
+[![Last commit](https://img.shields.io/github/last-commit/workflow-kit/pr-auto-labeler)](https://github.com/workflow-kit/pr-auto-labeler/commits/main)
+[![Release](https://img.shields.io/github/v/release/workflow-kit/pr-auto-labeler?include_prereleases)](https://github.com/workflow-kit/pr-auto-labeler/releases)
+
 ## 📸 See It In Action
 
 ![PR Auto-Labeler Preview](.github/images/pr-labels-preview.png)
@@ -450,6 +460,32 @@ Want to add a new rule or improve existing ones? See [CONTRIBUTING.md](CONTRIBUT
 - Testing requirements
 - How to test locally
 - Contribution workflow
+
+---
+
+## 📊 Usage Analytics
+
+Want to see how widely this action is used? Here's what the badges track:
+
+| Badge | What It Measures | Why It Matters |
+|-------|------------------|----------------|
+| ⭐ **Stars** | Community interest & endorsement | Shows how many developers find this useful |
+| 🔱 **Forks** | Active usage & customization | Indicates real adoption (people building on it) |
+| 👁️ **Watchers** | Active monitoring | Shows engaged users tracking updates |
+| 🔗 **Used by** | Public repos using this action | Direct measure of adoption in production |
+| 📝 **Issues/PRs** | Community engagement | Shows active maintenance & support |
+
+**Note:** GitHub only tracks public repository usage. Private repos using this action won't appear in these metrics, so actual usage is likely **2-5x higher** than shown.
+
+### How Marketplace Analytics Work
+
+Once published to GitHub Marketplace (coming soon!), you'll get access to:
+- ✅ Download counts
+- ✅ Installation metrics
+- ✅ Usage trends over time
+- ✅ Geographic distribution
+
+The Marketplace insights will be available at: `github.com/marketplace/actions/YOUR-ACTION-NAME` (after publication).
 
 ---
 
